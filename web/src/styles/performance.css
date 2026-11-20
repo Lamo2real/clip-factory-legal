@@ -1029,3 +1029,42 @@
   align-items: center;
   gap: 6px 10px;
 }
+
+/* ---------- New followers from this clip (docs/CONTRACTS.md §38) ---------- */
+.perf-followers {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 640px);
+  margin-inline: auto;
+  padding: clamp(14px, 2vw, 22px);
+  border-radius: var(--r-lg);
+  min-width: 0;
+}
+.perf-followers__title {
+  font-size: var(--fs-h3);
+  font-weight: 700;
+}
+.perf-followers__list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.perf-followers__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+.perf-followers__text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.perf-followers__num {
+  font-weight: 700;
+}
+.perf-followers__fine {
+  color: var(--ink-2);
+  font-size: var(--fs-small);
+}

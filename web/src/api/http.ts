@@ -166,6 +166,7 @@ export function httpApi({ baseUrl, auth, fetcher = (...a) => fetch(...a) }: Deps
         "GET",
         `/money/clips${q({ platforms: query.platforms.join(","), period: query.period, sort: query.sort, cursor: query.cursor, limit: query.limit })}`,
       ),
+    getFollowers: () => call("GET", "/followers"),
     listFollows: () => call("GET", "/follows"),
     lookupFollow: (text, platform) => call("POST", "/follows/lookup", platform ? { text, platform } : { text }),
     follow: async (platform, platformId) =>

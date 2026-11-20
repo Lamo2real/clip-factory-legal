@@ -19,6 +19,7 @@ import { useAction } from "../../lib/motion.ts";
 import { prefersReducedMotion, usePrefs } from "../../lib/prefs.ts";
 import { goBack } from "../../lib/router.ts";
 import { isoWeek, weekRange } from "../../lib/week.ts";
+import { ClipFollowers } from "./ClipFollowers.tsx";
 
 /** Re-renders every `ms` so "3 min ago" and "Next check in 4 min" stay true. */
 export function useNow(ms = 15_000): number {
@@ -423,6 +424,7 @@ export function ClipPerformance({ clipId }: { clipId: string }) {
           })}
         </div>
       </div>
+      <ClipFollowers perf={perf} />
     </div>
   );
 }

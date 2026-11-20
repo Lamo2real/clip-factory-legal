@@ -1,5 +1,5 @@
 {
- "version": "762168c096ea",
+ "version": "947d41eb866a",
  "parts": [
   {
    "id": "app-map",
@@ -250,6 +250,12 @@
    "title": "CONTRACTS: 37. Chat hype: the crowd as a signal (owner request, 2026-11-20)",
    "line": "37.1 The owner's words",
    "chars": 9831
+  },
+  {
+   "id": "contracts-38",
+   "title": "CONTRACTS: 38. Followers and subscribers: per clip and in total (owner request, 2026-11-20)",
+   "line": "The owner's ask: see per video how many followers each posted clip brought in, on each platform it went to, and",
+   "chars": 7259
   },
   {
    "id": "adr-01",

@@ -601,6 +601,33 @@ export interface LessonsView {
 
 export type PerfStatus = "posted" | "posted_private" | "waiting_for_connection" | "posting" | "failed" | "not_posted";
 
+// ---------- Followers and subscribers (docs/CONTRACTS.md §38) ----------
+/** "subscribers" on YouTube, "followers" everywhere else. */
+export type FollowerWord = "subscribers" | "followers";
+export type FollowerState = "counted" | "not_connected" | "not_checked_yet" | "missing";
+
+/** One platform's total right now, as the platform last reported it (the daily check, §25.6 ACCTSTAT#). */
+export interface FollowerCount {
+  platform: Platform;
+  word: FollowerWord;
+  state: FollowerState;
+  /** Only when state is "counted"; never a guess or a 0 standing in for "unknown". */
+  count: number | null;
+  /** When the platform reported that number. */
+  checkedAt?: string;
+  /** count minus the count reported 7 days before; absent when that day was not read. */
+  weekChange?: number;
+  /** YouTube rounds subscriber counts. */
+  rounded?: true;
+  /** Why there is no number, in plain words. */
+  note?: string;
+}
+
+/** GET /v1/followers: always five, in STATS_ORDER. */
+export interface FollowersView {
+  platforms: FollowerCount[];
+}
+
 export interface PlatformPerformance {
   platform: Platform;
   status: PerfStatus;
@@ -1218,6 +1245,8 @@ export interface Api {
   getMoneySummary(platforms: Platform[], chart: MoneyChart): Promise<MoneySummary>;
   /** GET /v1/money/clips?platforms=&period=&sort=&cursor=&limit= (§27.5). */
   getMoneyClips(query: MoneyClipsQuery): Promise<MoneyClips>;
+  /** GET /v1/followers (§38): followers and subscribers right now, per platform. */
+  getFollowers(): Promise<FollowersView>;
   // Follow creators (§24.1)
   /** GET /v1/follows: the follows, the key slots and the Kick webhook address. */
   listFollows(): Promise<FollowsView>;

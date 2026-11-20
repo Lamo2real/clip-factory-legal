@@ -3,7 +3,23 @@
 from __future__ import annotations
 
 from ..http import Route, route
-from . import ask, clips, follows, help, jobs, lessons, macfetch, money, performance, push, setup, skills, system, weeks
+from . import (
+    ask,
+    clips,
+    followers,
+    follows,
+    help,
+    jobs,
+    lessons,
+    macfetch,
+    money,
+    performance,
+    push,
+    setup,
+    skills,
+    system,
+    weeks,
+)
 
 ROUTES: list[Route] = [
     route("GET", "/v1/health", system.health, public=True),
@@ -76,6 +92,8 @@ ROUTES: list[Route] = [
     route("GET", "/v1/money/summary", money.get_summary),
     route("GET", "/v1/money/clips", money.get_clips),
     route("GET", "/v1/money/{platform}/days", money.get_days),
+    # §38: follower counts, read from the snapshots the daily money run already stores.
+    route("GET", "/v1/followers", followers.get_followers),
     route("GET", "/v1/weeks/{week}", weeks.get_week),
     route("PUT", "/v1/weeks/{week}/best", weeks.put_best),
     # Ask Clip Factory (§19.6): the help package loads only inside these handlers.

@@ -12,6 +12,7 @@ import { statsApi, type StatsFaults } from "./stats.ts";
 import { skillsApi, type MockSkillControls } from "./skills.ts";
 import { lessonsApi, type LessonsFault } from "./lessons.ts";
 import { followsApi } from "./follows.ts";
+import { followersApi } from "./followers.ts";
 import { mockMoneyGrant, moneyApi } from "./money.ts";
 import { pushApi } from "./push.ts";
 import { isSoundId } from "../../lib/soundCatalog.ts";
@@ -415,10 +416,11 @@ export function mockApi(store: Store = seed(), faults: MockFaults = { keepStopsA
   const lessons = lessonsApi(() => store.clips, () => faults.lessons, () => delay());
   const follows = followsApi((ev) => mockLive.publish(ev), () => delay());
   const money = moneyApi(() => delay(), { clips: () => store.clips, posts: () => store.posts });
+  const followers = followersApi(() => delay());
   if (typeof window !== "undefined") {
     // Merge, never replace: posting (above) and setup (mock/setup.ts) keep their knobs on the same object.
     const w = window as unknown as { __cfMock?: Record<string, unknown> & Partial<MockSkillControls> };
-    w.__cfMock = Object.assign(w.__cfMock ?? {}, skills.controls, { follows: follows.controls, money: money.controls });
+    w.__cfMock = Object.assign(w.__cfMock ?? {}, skills.controls, { follows: follows.controls, money: money.controls, followers: followers.controls });
   }
 
   const api: Api = {
@@ -721,6 +723,7 @@ export function mockApi(store: Store = seed(), faults: MockFaults = { keepStopsA
     ...lessons,
     ...follows.api,
     ...money.api,
+    ...followers.api,
     ...pushApi(),
     async getSettings() {
       await delay();

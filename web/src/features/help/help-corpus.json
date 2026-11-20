@@ -1,5 +1,5 @@
 {
-  "version": "70ac13a45478",
+  "version": "62d3cc07223c",
   "app": "clip-factory",
   "generatedFrom": [
     "src/app/App.tsx",
@@ -15,7 +15,9 @@
     "src/features/help/helpKb.json",
     "src/lib/router.ts",
     "src/lib/settingsTree.ts",
+    "src/screens/clip/ClipFollowers.tsx",
     "src/screens/clip/ClipPerformance.tsx",
+    "src/screens/home/FollowersTile.tsx",
     "src/screens/home/Home.tsx",
     "src/screens/home/MoneyTile.tsx",
     "src/screens/home/NewJobForm.tsx",
@@ -2865,8 +2867,11 @@
       "keywords": [
         "start",
         "main page",
-        "worth",
+        "followers",
+        "set",
+        "up",
         "posting",
+        "worth",
         "ready",
         "review",
         "working",
@@ -2889,10 +2894,7 @@
         "message",
         "close",
         "remove",
-        "check",
-        "keep",
-        "stop",
-        "automatic"
+        "check"
       ],
       "answer": "Paste a link to a stream or a video. Clip Factory finds the best moments and makes short clips. You pick the ones to upload.",
       "steps": [

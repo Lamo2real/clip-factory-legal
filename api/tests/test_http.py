@@ -200,6 +200,8 @@ def test_every_contract_route_is_registered() -> None:
         ("GET", "/v1/money/youtube/days"),
         ("GET", "/v1/money/summary"),
         ("GET", "/v1/money/clips"),
+        # §38: follower counts
+        ("GET", "/v1/followers"),
         # §19.6: Ask Clip Factory
         ("GET", "/v1/help"),
         ("POST", "/v1/help/answers"),

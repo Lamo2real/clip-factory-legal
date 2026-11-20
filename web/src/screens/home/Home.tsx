@@ -10,6 +10,7 @@ import { useLiveEvents, useLivePoll } from "../../lib/live.ts";
 import { applyClipEvent, applyJobEvent, withMedia } from "../../lib/liveCache.ts";
 import { GetAppBanner } from "../../components/GetApp.tsx";
 import { NewJobForm } from "./NewJobForm.tsx";
+import { FollowersTile } from "./FollowersTile.tsx";
 import { MoneyTile } from "./MoneyTile.tsx";
 import { StreamersRow } from "./StreamersRow.tsx";
 import { LiveLine } from "../jobs/LiveLine.tsx";
@@ -140,6 +141,7 @@ export function Home() {
         <Stat views={data?.views ?? null} posts={data?.postsChecked ?? 0} unavailable={data !== null && data.views === null} />
       </section>
       <MoneyTile />
+      <FollowersTile />
       <StreamersRow />
     </div>
   );
