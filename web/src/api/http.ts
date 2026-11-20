@@ -115,6 +115,7 @@ export function httpApi({ baseUrl, auth, fetcher = (...a) => fetch(...a) }: Deps
     createSkillUpload: (filename, skillId) =>
       call("POST", "/skills/uploads", skillId ? { filename, skillId } : { filename }),
     createSkill: async (body) => (await call<{ skill: Skill }>("POST", "/skills", body)).skill,
+    skillSection: (skillId, body) => call("POST", `/skills/${id(skillId)}/sections`, body),
     deleteSkill: (skillId) => call("DELETE", `/skills/${id(skillId)}`),
     getSettings: async () => (await call<{ settings: Settings }>("GET", "/settings")).settings,
     putSettings: async (patch) => (await call<{ settings: Settings }>("PUT", "/settings", patch)).settings,

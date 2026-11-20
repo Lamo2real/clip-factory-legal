@@ -16,6 +16,7 @@ from html import escape
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from . import skill_sections
 from .retry import retry
 from .util import log
 
@@ -277,6 +278,8 @@ def skills_block(docs: Sequence[SkillDoc], *, where: str = "") -> SkillsBlock:
     parts: list[str] = []
     omitted: list[str] = []
     truncated = 0
+    notes = 0
+    builtins = [(x.name, x.text) for x in ordered if x.builtin]
     for d in ordered:
         text = _clean(d.text)
         cut = False
@@ -291,10 +294,16 @@ def skills_block(docs: Sequence[SkillDoc], *, where: str = "") -> SkillsBlock:
         truncated += cut
         source = "built-in" if d.builtin else "owner"
         parts.append(f'<skill name="{escape(d.name)}" source="{source}">\n{text}\n</skill>')
+        if not d.builtin:  # his copy of a built-in that gained a part since: a small separate note (§38.4)
+            for gap in skill_sections.missing_sections(builtins, d.text):
+                note = skill_sections.skill_note(d.name, gap)
+                left = max(0, left - len(note))  # a note counts against the same budget (§38.4)
+                parts.append(note)
+                notes += 1
     if not parts and not omitted:
         out = '<owner_skills count="0"></owner_skills>'
     else:
-        lines = [f'<owner_skills count="{len(parts)}">', BLOCK_INTRO, *parts]
+        lines = [f'<owner_skills count="{len(parts) - notes}">', BLOCK_INTRO, *parts]
         if omitted:
             lines.append(f'<skills_left_out names="{escape(", ".join(omitted))}">{BLOCK_LEFT_OUT}</skills_left_out>')
         lines.append("</owner_skills>")
@@ -302,9 +311,10 @@ def skills_block(docs: Sequence[SkillDoc], *, where: str = "") -> SkillsBlock:
     counts = {
         "builtin": sum(1 for d in ordered if d.builtin),
         "owner": sum(1 for d in ordered if not d.builtin),
-        "included": len(parts),
+        "included": len(parts) - notes,
         "truncated": truncated,
         "omitted": len(omitted),
+        "notes": notes,
         "chars": len(out),
     }
     log("info", "skills.block", where=where, **counts)

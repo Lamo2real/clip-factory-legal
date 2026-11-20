@@ -1,13 +1,135 @@
 // The skills routes of docs/CONTRACTS.md §18 in memory, with the same rules as the API: every skill is always used,
 // names come from titles and must be unique, built-ins are read-only, every save checks `version`.
 import { ApiError } from "../errors.ts";
-import type { Api, Skill, SkillDetail, SkillForm } from "../types.ts";
+import type { Api, SectionOffer, Skill, SkillDetail, SkillForm } from "../types.ts";
 import { splitFrontmatter } from "../../lib/markdown.ts";
 import { BODY_MAX_BYTES, checkForm, cleanForm, humanize, nameTaken, slug, uploadNameTaken } from "../../lib/skillName.ts";
 import { ulid } from "./fixtures.ts";
 
-/** A stored skill: the public fields plus its SKILL.md text and, for a zip, the other files in it. */
-export type MockSkill = Skill & { content: string; files: string[] };
+/**
+ * A stored skill: the public fields plus its SKILL.md text and, for a zip, the other files in it. `copyOf` marks the
+ * owner's own copy of a built-in (§38); `notNow` and `sectionAdded` are what the API keeps on the item.
+ */
+export type MockSkill = Skill & {
+  content: string;
+  files: string[];
+  copyOf?: string;
+  notNow?: string[];
+  sectionAdded?: { key: string; at: number; text: string };
+};
+
+// --- §38: the owner's copy of a built-in that gained a part since -------------------------------------------------
+
+/** The built-in part the mock knows: viral-clip-editing's Chat block (shortened; the API cuts the real one). */
+export const CHAT_SECTION = {
+  key: "viral-clip-editing/chat@1",
+  title: "Chat went wild",
+  builtinId: "builtin-viral-clip-editing",
+  builtinTitle: "Viral clip editing",
+  text:
+    '**Chat** (the "Chat spikes" line): the live chat suddenly going much faster than usual, or many people typing the same thing (W, LUL, KEKW, "CLIP IT"), is the audience telling you something just happened.\n' +
+    "- Chat lags: it reacts 2 to 10 seconds *after* the moment.\n" +
+    "- Chat alone is a hint, never a clip: something must be seen or heard in that range.\n" +
+    "- Ignore bursts from raids, giveaways, !commands, bots and sub trains.",
+  before: "### Skip these",
+  within: "### Reading the signals",
+} as const;
+
+const COPY_KEY = "cf-mock-skill-copy";
+export const COPY_ID = "01JZ8S00000000000000000009";
+
+/** His copy of viral-clip-editing from before the Chat part, with his own rule added. */
+function skillCopy(): MockSkill {
+  const content =
+    '---\nname: my-clip-rules\ndescription: "My own copy of the viral clip rules, with my changes."\n---\n\n# My clip rules\n\n## 1. Which moments go viral\n\n### Reading the signals\n\n**Faces**: trust a shocked face most.\n\n**Sound**: a loud shout or a laugh.\n\n### Skip these\n- Menus and loading screens.\n\n## 2. My own rule\n\nKeep police chases short.\n';
+  return {
+    skillId: COPY_ID,
+    name: "my-clip-rules",
+    title: "My clip rules",
+    description: "My own copy of the viral clip rules, with my changes.",
+    builtin: false,
+    source: "upload",
+    format: "md",
+    size: bytes(content),
+    createdAt: "2026-11-18T09:00:00.000Z",
+    updatedAt: "2026-11-18T09:00:00.000Z",
+    version: 1,
+    content,
+    files: [],
+    copyOf: "viral-clip-editing",
+    notNow: [],
+  };
+}
+
+/** The copy, when a test asked for it (`__cfMock.addSkillCopy()`); kept in sessionStorage so a reload keeps it. */
+export function savedSkillCopy(): MockSkill | null {
+  try {
+    const raw = typeof sessionStorage === "undefined" ? null : sessionStorage.getItem(COPY_KEY);
+    if (!raw) return null;
+    return raw === "1" ? skillCopy() : (JSON.parse(raw) as MockSkill);
+  } catch {
+    return null;
+  }
+}
+
+function saveCopy(s: MockSkill): void {
+  try {
+    if (s.copyOf) sessionStorage.setItem(COPY_KEY, JSON.stringify(s));
+  } catch {
+    // a test without storage just loses the copy on reload
+  }
+}
+
+/** Where the part goes in his text and exactly what is added (the API's `insertion`, §38.3). */
+export function insertion(text: string): { at: number; added: string } {
+  const lines = text.split("\n");
+  const offsets: number[] = [];
+  let at = 0;
+  for (const l of lines) {
+    offsets.push(at);
+    at += l.length + 1;
+  }
+  let start = 0;
+  if (lines[0]?.trim() === "---") start = lines.findIndex((l, i) => i > 0 && l.trim() === "---") + 1;
+  let place: number | null = null;
+  const before = lines.findIndex((l, i) => i >= start && l.trim() === CHAT_SECTION.before);
+  if (before >= 0) place = offsets[before]!;
+  else {
+    const head = lines.findIndex((l, i) => i >= start && l.trim() === CHAT_SECTION.within);
+    if (head >= 0) {
+      const level = /^(#+)\s/.exec(lines[head]!)![1]!.length;
+      const next = lines.findIndex((l, i) => i > head && /^(#+)\s/.test(l) && /^(#+)/.exec(l)![1]!.length <= level);
+      if (next >= 0) place = offsets[next]!;
+    }
+  }
+  const part = CHAT_SECTION.text;
+  if (place === null) {
+    const sep = text === "" || text.endsWith("\n\n") ? "" : text.endsWith("\n") ? "\n" : "\n\n";
+    return { at: text.length, added: `${sep}${part}\n` };
+  }
+  const sep = place === 0 || text.slice(0, place).endsWith("\n\n") ? "" : "\n";
+  return { at: place, added: `${sep}${part}\n\n` };
+}
+
+/** The parts his copy lacks (`listed`: not the ones he said Not now to, as the Skills list). */
+export function offersFor(s: MockSkill, listed = false): SectionOffer[] {
+  if (s.copyOf !== "viral-clip-editing" || s.content.toLowerCase().includes("chat spikes")) return [];
+  const notNow = !!s.notNow?.includes(CHAT_SECTION.key);
+  if (listed && notNow) return [];
+  const { at } = insertion(s.content);
+  const nonBlank = (t: string) => t.split("\n").filter((l) => l.trim());
+  return [
+    {
+      key: CHAT_SECTION.key,
+      title: CHAT_SECTION.title,
+      builtinId: CHAT_SECTION.builtinId,
+      builtinTitle: CHAT_SECTION.builtinTitle,
+      text: CHAT_SECTION.text,
+      preview: { before: nonBlank(s.content.slice(0, at)).slice(-3), after: nonBlank(s.content.slice(at)).slice(0, 3) },
+      notNow,
+    },
+  ];
+}
 
 const OWNER = "mock-owner";
 const MD_MAX_BYTES = 1024 ** 2;
@@ -56,7 +178,10 @@ function extraFrontmatter(text: string): string {
   return keep.join("\n").trim();
 }
 
-const toPublic = ({ content: _c, files: _f, ...s }: MockSkill): Skill => ({ ...s });
+const toPublic = ({ content: _c, files: _f, copyOf: _o, notNow: _n, sectionAdded: _a, ...s }: MockSkill): Skill => {
+  const offers = !s.builtin && _o ? offersFor({ ...s, content: _c, files: _f, copyOf: _o, notNow: _n }, true) : [];
+  return offers.length ? { ...s, newSections: offers } : { ...s };
+};
 
 /** Built-ins by name, then the owner's by name (ties by id). */
 export function sortSkills<T extends Skill>(skills: T[]): T[] {
@@ -65,13 +190,18 @@ export function sortSkills<T extends Skill>(skills: T[]): T[] {
   );
 }
 
-type SkillApi = Pick<Api, "listSkills" | "getSkill" | "writeSkill" | "updateSkill" | "createSkillUpload" | "createSkill" | "deleteSkill">;
+type SkillApi = Pick<
+  Api,
+  "listSkills" | "getSkill" | "writeSkill" | "updateSkill" | "createSkillUpload" | "createSkill" | "deleteSkill" | "skillSection"
+>;
 
 export interface MockSkillControls {
   /** Pretends the skill was changed on another screen: a new version with slightly different words. */
   bumpSkillVersion(skillId: string): number;
   /** The old on/off switch route: always the §18.1 400. */
   patchSkill(skillId: string, body?: unknown): Promise<never>;
+  /** Adds the owner's copy of viral-clip-editing from before its Chat part (§38); kept over reloads. */
+  addSkillCopy(): void;
 }
 
 export function skillsApi(
@@ -123,7 +253,13 @@ export function skillsApi(
     async getSkill(skillId) {
       await delay();
       const s = find(skillId);
-      return { skill: toPublic(s), content: s.content, ...parseForm(s, s.content), files: s.format === "zip" ? [...s.files].sort() : [] };
+      return {
+        skill: toPublic(s),
+        content: s.content,
+        ...parseForm(s, s.content),
+        files: s.format === "zip" ? [...s.files].sort() : [],
+        ...(s.builtin ? {} : { newSections: offersFor(s) }),
+      };
     },
     async writeSkill(form) {
       await delay(200, 420);
@@ -223,6 +359,33 @@ export function skillsApi(
       owned(skillId);
       store.skills = store.skills.filter((x) => x.skillId !== skillId);
     },
+    async skillSection(skillId, body) {
+      await delay(200, 420);
+      const s = owned(skillId);
+      if (body.key !== CHAT_SECTION.key) throw bad("We do not know that part.");
+      if (body.action === "not_now") {
+        if (!s.notNow?.includes(body.key)) s.notNow = [...(s.notNow ?? []), body.key];
+      } else {
+        if (body.version !== s.version) throw conflict(STALE);
+        if (body.action === "add") {
+          if (s.content.toLowerCase().includes("chat spikes")) throw conflict("Your skill already has this part.");
+          const { at, added } = insertion(s.content);
+          s.content = s.content.slice(0, at) + added + s.content.slice(at);
+          s.sectionAdded = { key: body.key, at, text: added };
+        } else {
+          const last = s.sectionAdded;
+          if (!last || last.key !== body.key || s.content.slice(last.at, last.at + last.text.length) !== last.text)
+            throw conflict("Your skill changed since, so this cannot be undone here. Open it and tap Edit to take the part out.");
+          s.content = s.content.slice(0, last.at) + s.content.slice(last.at + last.text.length);
+          delete s.sectionAdded;
+        }
+        if (s.format === "md") s.size = bytes(s.content);
+        s.version += 1;
+        s.updatedAt = new Date().toISOString();
+      }
+      saveCopy(s);
+      return { skill: toPublic(s), newSections: offersFor(s) };
+    },
   };
 
   const controls: MockSkillControls = {
@@ -241,6 +404,13 @@ export function skillsApi(
     async patchSkill() {
       await delay();
       throw bad(NO_SWITCH);
+    },
+    addSkillCopy() {
+      if (!store.skills.some((x) => x.skillId === COPY_ID)) {
+        const copy = skillCopy();
+        store.skills.push(copy);
+        saveCopy(copy);
+      }
     },
   };
   return { api, controls };

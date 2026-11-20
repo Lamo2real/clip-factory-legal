@@ -1,0 +1,3 @@
+<skill_note skill="my-clip-rules" part="viral-clip-editing/chat@1">
+The owner's skill "my-clip-rules" is his own copy of the built-in skill "viral-clip-editing", made before the built-in gained its "Chat went wild" part. Until he adds it to his copy, also follow that part of the built-in skill "viral-clip-editing" above (the part that begins '**Chat** ('). Where his own words say something different, his words win.
+</skill_note>

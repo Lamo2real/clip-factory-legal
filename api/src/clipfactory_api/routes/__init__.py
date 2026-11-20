@@ -36,6 +36,7 @@ ROUTES: list[Route] = [
     route("PATCH", "/v1/skills/{skillId}", skills.patch_skill),
     route("DELETE", "/v1/skills/{skillId}", skills.delete_skill),
     route("GET", "/v1/skills/{skillId}/content", skills.content),
+    route("POST", "/v1/skills/{skillId}/sections", skills.skill_section),
     route("GET", "/v1/settings", system.get_settings),
     route("PUT", "/v1/settings", system.put_settings),
     route("POST", "/v1/settings/cookies", system.create_cookies_upload),

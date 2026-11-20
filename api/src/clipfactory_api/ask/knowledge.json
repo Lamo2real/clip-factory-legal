@@ -1,5 +1,5 @@
 {
- "version": "a93addf4b74d",
+ "version": "58c0a33c30d0",
  "parts": [
   {
    "id": "app-map",
@@ -57,7 +57,7 @@
    "id": "contracts-5",
    "title": "CONTRACTS: 5. HTTP API (API Gateway HTTP API v2 → Lambda `cf-prod-api`)",
    "line": "Base: ${apiUrl}/v1. JSON in and out, camelCase. Every route requires the JWT except GET /v1/health.",
-   "chars": 13729
+   "chars": 13958
   },
   {
    "id": "contracts-6",
@@ -249,7 +249,13 @@
    "id": "contracts-37",
    "title": "CONTRACTS: 37. Chat hype: the crowd as a signal (owner request, 2026-11-20)",
    "line": "37.1 The owner's words",
-   "chars": 9831
+   "chars": 9944
+  },
+  {
+   "id": "contracts-38",
+   "title": "CONTRACTS: 38. New parts of a built-in skill, for the owner's own copy of it (owner request, 2026-11-20)",
+   "line": "38.1 The problem and the rule",
+   "chars": 5563
   },
   {
    "id": "adr-01",
@@ -616,6 +622,12 @@
    "title": "DECISIONS: ADR-61 Chat hype from replay where it is public, from the picture where it is not; never a reason to fail",
    "line": "Context. The owner asked that a streamer's chat scrolling very fast, or flooding with one word, count as a sign",
    "chars": 1842
+  },
+  {
+   "id": "adr-62",
+   "title": "DECISIONS: ADR-62 New built-in skill parts are offered to the owner's copy, never written into it",
+   "line": "Context. §37 added a Chat block to the built-in viral-clip-editing. An owner who had made his own copy of that",
+   "chars": 1310
   },
   {
    "id": "architecture-overview",

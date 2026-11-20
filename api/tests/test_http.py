@@ -156,6 +156,7 @@ def test_every_contract_route_is_registered() -> None:
         ("PATCH", "/v1/skills/X"),
         ("DELETE", "/v1/skills/X"),
         ("GET", "/v1/skills/X/content"),
+        ("POST", "/v1/skills/X/sections"),  # §38
         ("GET", "/v1/settings"),
         ("PUT", "/v1/settings"),
         ("GET", "/v1/lessons"),

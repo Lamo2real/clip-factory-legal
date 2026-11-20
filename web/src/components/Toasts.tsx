@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Icon } from "./Icon.tsx";
+import { Icon, type IconName } from "./Icon.tsx";
 
 export type ToastTone = "success" | "error" | "info" | "undo";
 interface ToastItem {
@@ -9,6 +9,8 @@ interface ToastItem {
   ms: number;
   /** A toast with a group replaces the one before it in that group instead of stacking under it. */
   group?: string;
+  /** An undo toast's own picture (the bin by default). */
+  icon?: IconName;
 }
 
 export interface ToastOptions {
@@ -25,6 +27,8 @@ export interface UndoOptions {
   onCommit: () => void;
   /** How long Undo stays available. */
   ms?: number;
+  /** The picture beside the words: the bin by default; an undo of an addition shows what was added (§38). */
+  icon?: IconName;
 }
 
 export interface Toaster {
@@ -90,7 +94,7 @@ export function ToastProvider({ children, onError }: { children: ReactNode; onEr
   }, [commit]);
 
   const push = useCallback(
-    (tone: ToastTone, text: string, ms?: number, group?: string): number => {
+    (tone: ToastTone, text: string, ms?: number, group?: string, icon?: IconName): number => {
       const id = next.current++;
       const life = ms ?? (tone === "error" ? 7000 : 4200);
       setItems((all) => {
@@ -98,7 +102,7 @@ export function ToastProvider({ children, onError }: { children: ReactNode; onEr
         const keep = all.filter((t) => t.tone === "undo" || (t.text !== text && (!group || t.group !== group)));
         const old = keep.filter((t) => t.tone !== "undo").slice(-2);
         const undos = keep.filter((t) => t.tone === "undo");
-        const item: ToastItem = group ? { id, tone, text, ms: life, group } : { id, tone, text, ms: life };
+        const item: ToastItem = { id, tone, text, ms: life, ...(group ? { group } : {}), ...(icon ? { icon } : {}) };
         return [...undos, ...old, item].sort((a, b) => a.id - b.id);
       });
       if (tone === "error") onErrorRef.current?.();
@@ -115,19 +119,20 @@ export function ToastProvider({ children, onError }: { children: ReactNode; onEr
       info: (t, o) => void push("info", t, o?.ms, o?.group),
       undo: (t, options) => {
         const ms = options.ms ?? UNDO_MS;
-        const id = push("undo", t, ms);
+        const id = push("undo", t, ms, undefined, options.icon);
         pending.current.set(id, { ...options, timer: setTimeout(() => commit(id), ms) });
       },
     }),
     [push, commit],
   );
 
-  const icon = (tone: ToastTone) => (tone === "error" ? "alert" : tone === "success" ? "checkCircle" : tone === "undo" ? "trash" : "info");
+  const icon = (t: ToastItem) =>
+    t.icon ?? (t.tone === "error" ? "alert" : t.tone === "success" ? "checkCircle" : t.tone === "undo" ? "trash" : "info");
 
   const render = (filter: (t: ToastItem) => boolean) =>
     items.filter(filter).map((t) => (
       <div key={t.id} className={`toast toast--${t.tone} glass`}>
-        <Icon name={icon(t.tone)} />
+        <Icon name={icon(t)} />
         <p className="toast__text">{t.text}</p>
         {t.tone === "undo" ? (
           <>

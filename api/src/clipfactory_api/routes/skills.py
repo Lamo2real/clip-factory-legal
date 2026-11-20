@@ -7,17 +7,18 @@ uploaded as a SKILL.md or a zip. Every saved file gets its own revision key, so 
 
 from __future__ import annotations
 
+import codecs
 import zipfile
 from typing import Any
 
-from .. import db, s3, skills, validate
+from .. import db, s3, skill_sections, skills, validate
 from ..app import App
 from ..clock import iso
 from ..errors import ApiError, bad_request, conflict, not_found, too_large
 from ..http import Request, Response, no_content, ok
 from ..ids import is_ulid, ulid
 from ..log import log
-from ..skill_prompt import owner_items
+from ..skill_prompt import owner_items, read_skill_text
 
 CONTENT_TYPES = {"md": "text/markdown", "zip": "application/zip"}
 LIMITS = {"md": skills.MD_MAX_BYTES, "zip": skills.ZIP_MAX_BYTES}
@@ -176,8 +177,167 @@ def list_skills(app: App, req: Request) -> Response:
     rows = app.store.query_all(db.user_pk(req.user_id), "SKILL#")
     _remove_choice_items(app, rows)
     builtins = [_builtin_public(b) for b in sorted(app.builtin_skills(), key=lambda b: b.name)]
-    owner = sorted((_public(i) for i in owner_items(rows)), key=lambda s: (s["name"], s["skillId"]))
+    owner = []
+    for item in owner_items(rows):
+        view = _public(item)
+        offers = _listed_offers(app, item)
+        if offers:  # only on his copy of a built-in that gained a part since (§38.2)
+            view["newSections"] = offers
+        owner.append(view)
+    owner.sort(key=lambda s: (s["name"], s["skillId"]))
     return ok({"skills": builtins + owner})
+
+
+# --- new parts of a built-in, for his copy of it (§38) ---------------------------------------------------------
+
+SECTION_ACTIONS = ("add", "undo", "not_now")
+ALREADY_HAS = "Your skill already has this part."
+NOT_A_COPY = "Your skill is not a copy of that built-in skill, so this part cannot be added to it."
+CANNOT_UNDO = "Your skill changed since, so this cannot be undone here. Open it and tap Edit to take the part out."
+
+
+def _builtin_texts(app: App) -> list[tuple[str, str]]:
+    out = []
+    for b in app.builtin_skills():
+        try:
+            out.append((b.name, skills.decode_text(b.path.read_bytes())))
+        except (OSError, skills.SkillError):
+            continue
+    return out
+
+
+def _offers(app: App, item: dict[str, Any], text: str, *, listed: bool = False) -> list[dict[str, Any]]:
+    """The parts his copy lacks, each with the text and where it would go. ``notNow`` says he tapped Not now: the
+    Skills list leaves those out (``listed``), the skill's own page still offers them in a small note."""
+    not_now = set(item.get("sectionsNotNow") or [])
+    out = []
+    for gap in skill_sections.missing_sections(_builtin_texts(app), text):
+        s = gap.section
+        if listed and s.key in not_now:
+            continue
+        out.append(
+            {
+                "key": s.key,
+                "title": s.title,
+                "builtinId": skills.BUILTIN_PREFIX + s.skill,
+                "builtinTitle": skills.humanize(s.skill),
+                "text": gap.text,
+                "preview": skill_sections.preview(text, s),
+                "notNow": s.key in not_now,
+            }
+        )
+    return out
+
+
+def _listed_offers(app: App, item: dict[str, Any]) -> list[dict[str, Any]]:
+    """Offers for the list (not the ones he said Not now to); a file that cannot be read just means no offer."""
+    try:
+        text = read_skill_text(app.media, item)
+    except Exception as e:
+        log("warning", "skill.sections_unread", skillId=item.get("skillId"), error=type(e).__name__)
+        return []
+    return _offers(app, item, text, listed=True) if text is not None else []
+
+
+def _section(key: str) -> skill_sections.BuiltinSection:
+    found = next((s for s in skill_sections.SECTIONS if s.key == key), None)
+    if found is None:
+        raise bad_request("We do not know that part.")
+    return found
+
+
+def _builtin_part(app: App, section: skill_sections.BuiltinSection) -> str:
+    text = dict(_builtin_texts(app)).get(section.skill)
+    part = skill_sections.section_text(text, section) if text is not None else None
+    if part is None:
+        raise bad_request("We do not know that part.")
+    return part
+
+
+def skill_section(app: App, req: Request) -> Response:
+    """POST /v1/skills/{skillId}/sections: add a new built-in part to his copy, undo that, or say Not now (§38.3).
+    Add and undo save a new revision of his file with only the part added or taken out; Not now is remembered on
+    the skill (``sectionsNotNow``) and changes nothing else."""
+    item = _editable(app, req)
+    body = req.json()
+    validate.only_keys(body, {"key", "action", "version"})
+    action = body.get("action")
+    if action not in SECTION_ACTIONS:
+        raise bad_request("action must be add, undo or not_now.", "action")
+    section = _section(validate.required_string(body, "key", max_len=128))
+    if action == "not_now":
+        return _not_now(app, item, section)
+    version = validate.integer(body.get("version"), "version", lo=1, hi=2**31)
+    _check_version(item, version)
+    part = _builtin_part(app, section)
+    old_data, old_text = _read_file(app, item)
+    if action == "add" and section.key not in {o["key"] for o in _offers(app, item, old_text)}:
+        if skill_sections.has_section(old_text, section):
+            raise conflict(ALREADY_HAS)
+        raise conflict(NOT_A_COPY)
+    text, added = _changed_text(item, old_text, part, section, action)
+    fmt = "zip" if item.get("format") == "zip" else "md"
+    data = _packed(old_data, text, fmt)
+    key = s3.skill_key(req.user_id, str(item["skillId"]), ulid(), fmt)
+    app.media.put(key, data, CONTENT_TYPES[fmt])
+    fields: dict[str, Any] = {"key": key, "format": fmt, "size": len(data)}
+    if added is not None:  # exactly what was put in and where, so Undo takes out only that (§38.3)
+        fields["sectionAdded"] = added
+    saved = _save(app, item, version, fields, shape="section_" + action, remove=() if added else ("sectionAdded",))
+    updated = {**item, **fields, "version": version + 1}
+    log("info", "skill.section_" + action, skillId=item.get("skillId"), part=section.key)
+    skill = saved.body["skill"] if isinstance(saved.body, dict) else _public(updated)
+    return ok({"skill": skill, "newSections": _offers(app, updated, text)})
+
+
+def _not_now(app: App, item: dict[str, Any], section: skill_sections.BuiltinSection) -> Response:
+    not_now = [k for k in (item.get("sectionsNotNow") or []) if isinstance(k, str)]
+    if section.key not in not_now:
+        try:
+            item = app.store.update(item["pk"], item["sk"], {"sectionsNotNow": [*not_now, section.key]})
+        except db.ConditionFailed as e:  # he deleted the skill meanwhile
+            raise not_found(NOT_FOUND) from e
+    log("info", "skill.section_not_now", skillId=item.get("skillId"), part=section.key)
+    _, text = _read_file(app, item)
+    return ok({"skill": _public(item), "newSections": _offers(app, item, text)})
+
+
+def _changed_text(
+    item: dict[str, Any], old_text: str, part: str, section: skill_sections.BuiltinSection, action: str
+) -> tuple[str, dict[str, Any] | None]:
+    """His text with the part added (and what was added, for Undo), or with the last addition taken out again."""
+    if action == "add":
+        if skill_sections.has_section(old_text, section):
+            raise conflict(ALREADY_HAS)
+        at, chars = skill_sections.insertion(old_text, part, section)
+        text = old_text[:at] + chars + old_text[at:]
+        if len(text.encode()) > skills.MD_MAX_BYTES:
+            raise too_large("This skill would be too long with the new part.")
+        return text, {"key": section.key, "at": at, "text": chars}
+    last = item.get("sectionAdded")
+    undone = None
+    if isinstance(last, dict) and last.get("key") == section.key:
+        undone = skill_sections.remove_section(old_text, int(last.get("at", -1)), str(last.get("text") or ""))
+    if undone is None:
+        raise conflict(CANNOT_UNDO)
+    return undone, None
+
+
+def _packed(old_data: bytes, text: str, fmt: str) -> bytes:
+    if fmt != "zip":
+        bom = (
+            codecs.BOM_UTF8 if old_data.startswith(codecs.BOM_UTF8) else b""
+        )  # his file's first bytes stay as they were
+        return bom + text.encode()
+    try:
+        data = skills.replace_skill_md_in_zip(old_data, text)
+    except skills.SkillTooLarge as e:
+        raise too_large(str(e)) from e
+    except skills.SkillError as e:
+        raise bad_request(str(e)) from e
+    if len(data) > skills.ZIP_MAX_BYTES:
+        raise too_large("This .zip would be larger than 20 MB with the new part.")
+    return data
 
 
 def get_skill(app: App, req: Request) -> Response:
@@ -193,7 +353,13 @@ def get_skill(app: App, req: Request) -> Response:
     files: list[str] = []
     if item.get("format") == "zip":
         files = skills.zip_other_files(data)[:MAX_FILES_LISTED]
-    detail: dict[str, Any] = {"skill": _public(item), "content": text, "form": None, "files": files}
+    detail: dict[str, Any] = {
+        "skill": _public(item),
+        "content": text,
+        "form": None,
+        "files": files,
+        "newSections": _offers(app, item, text),
+    }
     try:
         form = skills.parse_form(_public(item), text)
     except skills.SkillError:
@@ -436,7 +602,9 @@ def _replace_file(app: App, req: Request, item: dict[str, Any], version: int, ke
     return _save(app, item, version, fields, shape="file")
 
 
-def _save(app: App, item: dict[str, Any], version: int, fields: dict[str, Any], *, shape: str) -> Response:
+def _save(
+    app: App, item: dict[str, Any], version: int, fields: dict[str, Any], *, shape: str, remove: tuple[str, ...] = ()
+) -> Response:
     """The conditional write of a new revision; on a stale version the just-written file is deleted (§18.4)."""
     new_key = str(fields["key"])
     condition: dict[str, Any] = {}
@@ -449,7 +617,7 @@ def _save(app: App, item: dict[str, Any], version: int, fields: dict[str, Any], 
             item["pk"],
             item["sk"],
             {**fields, "updatedAt": iso(app.clock()), "version": version + 1},
-            remove=["enabled"],
+            remove=["enabled", *remove],
             **condition,
         )
     except db.ConditionFailed as e:

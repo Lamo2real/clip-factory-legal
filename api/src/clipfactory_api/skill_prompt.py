@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from html import escape
 from typing import Any
 
-from . import db, s3, skills
+from . import db, s3, skill_sections, skills
 from .log import log
 
 SKILL_MAX_PROMPT_CHARS = 40_000
@@ -62,6 +62,8 @@ def skills_block(docs: Iterable[SkillDoc], *, where: str = "") -> SkillsBlock:
     parts: list[str] = []
     omitted: list[str] = []
     truncated = 0
+    notes = 0
+    builtins = [(x.name, x.text) for x in ordered if x.builtin]
     for doc in ordered:
         text = doc.text.replace("\r\n", "\n").rstrip()
         cut = False
@@ -76,10 +78,16 @@ def skills_block(docs: Iterable[SkillDoc], *, where: str = "") -> SkillsBlock:
         truncated += cut
         source = "built-in" if doc.builtin else "owner"
         parts.append(f'<skill name="{escape(doc.name)}" source="{source}">\n{text}\n</skill>')
+        if not doc.builtin:  # his copy of a built-in that gained a part since: a small separate note (§38.4)
+            for gap in skill_sections.missing_sections(builtins, doc.text):
+                note = skill_sections.skill_note(doc.name, gap)
+                left = max(0, left - len(note))  # a note counts against the same budget (§38.4)
+                parts.append(note)
+                notes += 1
     if not parts and not omitted:
         body = '<owner_skills count="0"></owner_skills>'
     else:
-        lines = [f'<owner_skills count="{len(parts)}">', INTRO, *parts]
+        lines = [f'<owner_skills count="{len(parts) - notes}">', INTRO, *parts]
         if omitted:
             lines.append(f'<skills_left_out names="{escape(", ".join(omitted))}">{LEFT_OUT}</skills_left_out>')
         lines.append("</owner_skills>")
@@ -87,9 +95,10 @@ def skills_block(docs: Iterable[SkillDoc], *, where: str = "") -> SkillsBlock:
     counts = {
         "builtin": sum(1 for d in ordered if d.builtin),
         "owner": sum(1 for d in ordered if not d.builtin),
-        "included": len(parts),
+        "included": len(parts) - notes,
         "truncated": truncated,
         "omitted": len(omitted),
+        "notes": notes,
         "chars": len(body),
     }
     log("info", "skills.block", where=where, **counts)
@@ -236,6 +245,12 @@ def _read_text(media: s3.Media, item: dict[str, Any], sleep: Callable[[float], N
         return None
     FILE_CACHE.put(cache_key, text)
     return text
+
+
+def read_skill_text(media: s3.Media, item: dict[str, Any]) -> str | None:
+    """One owner skill's SKILL.md text through the same cache as the skills block (``None`` when it cannot be
+    read); used to spot a copy of a built-in that lacks a newer part (§38)."""
+    return _read_text(media, item, time.sleep)
 
 
 def load_skills(

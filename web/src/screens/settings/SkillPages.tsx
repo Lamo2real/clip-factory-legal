@@ -18,6 +18,7 @@ import { sounds } from "../../lib/sounds.ts";
 import { Trail, usePickAction, type Crumb } from "./parts.tsx";
 import { deleteWithUndo, markNewSkill, useHiddenSkills, useUndoableDeletes } from "./skillDeletes.ts";
 import { SkillBadges, skillFileProblem, skillOrigin, uploadProblem } from "./SkillsSection.tsx";
+import { SkillSectionOffer } from "./SkillSectionOffer.tsx";
 
 interface Place {
   tree: Tree;
@@ -134,6 +135,7 @@ const BUILTIN_LEAF = "This skill comes with Clip Factory. It is always used. You
 function ReadPage({ tree, branch, skillId }: Place & { skillId: string }) {
   const { data, error, missing, reload } = useLoad(() => api().getSkill(skillId), skillId);
   const hidden = useHiddenSkills();
+  // §38: after Add, Undo or Not now the page reads the skill again (its words changed), keeping what is on screen.
   const toast = useToast();
   const [asking, setAsking] = useState(false);
 
@@ -178,6 +180,9 @@ function ReadPage({ tree, branch, skillId }: Place & { skillId: string }) {
         <SkillBadges skill={skill} />
         <span>{skillOrigin(skill, data.files.length)}</span>
       </p>
+      {(data.newSections ?? []).map((o) => (
+        <SkillSectionOffer key={o.key} skill={skill} offer={o} small onChange={() => void reload()} />
+      ))}
       <section className="skill-when glass" aria-labelledby="skill-when">
         <h2 className="skill-when__title" id="skill-when">
           When it is used

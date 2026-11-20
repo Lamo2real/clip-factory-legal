@@ -9,7 +9,7 @@ import { installMockLiveControls, mockLive } from "./live.ts";
 import { lineFor, sampleLine, SCRIPT } from "./jobLive.ts";
 import { setupApi } from "./setup.ts";
 import { statsApi, type StatsFaults } from "./stats.ts";
-import { skillsApi, type MockSkillControls } from "./skills.ts";
+import { savedSkillCopy, skillsApi, type MockSkillControls } from "./skills.ts";
 import { lessonsApi, type LessonsFault } from "./lessons.ts";
 import { followsApi } from "./follows.ts";
 import { mockMoneyGrant, moneyApi } from "./money.ts";
@@ -411,6 +411,9 @@ export function mockApi(store: Store = seed(), faults: MockFaults = { keepStopsA
     mockLive.publish({ type: "job", op: "delete", id: jobId });
     return { jobId, deleted: true, clipsDeleted: gone.length, clipsKept: mine.length - gone.length };
   };
+  // §38: the owner's copy of a built-in, only when a test asked for it (kept over reloads).
+  const copy = savedSkillCopy();
+  if (copy && !store.skills.some((x) => x.skillId === copy.skillId)) store.skills.push(copy);
   const skills = skillsApi(store, delay);
   const lessons = lessonsApi(() => store.clips, () => faults.lessons, () => delay());
   const follows = followsApi((ev) => mockLive.publish(ev), () => delay());

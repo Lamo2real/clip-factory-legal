@@ -1119,6 +1119,115 @@
   }
 }
 
+/* §38: a part a built-in gained after he copied it. A card on the Skills list, a small note on the skill's page.
+   No outline: the glass and a soft leaf tint carry it; vermilion stays on the one action (Add). */
+.skill-offer {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: var(--inset);
+  border-radius: var(--r-xl);
+  max-width: 820px;
+}
+.skill-offer.is-small {
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: var(--r-lg);
+}
+.skill-offer__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.skill-offer__icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--tint-leaf);
+  color: var(--green-text);
+}
+.skill-offer.is-small .skill-offer__icon {
+  width: 32px;
+  height: 32px;
+}
+.skill-offer__words {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.skill-offer__title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.skill-offer.is-small .skill-offer__title {
+  font-size: 0.98rem;
+}
+.skill-offer__meanwhile,
+.skill-offer__label {
+  color: var(--ink-3);
+  font-size: 0.92rem;
+}
+.skill-offer__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+@media (max-width: 479px) {
+  .skill-offer__actions > .btn {
+    flex: 1 1 100%;
+  }
+}
+.skill-offer__see {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+.skill-offer__his {
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: rgb(var(--green-deep-rgb) / 0.22);
+  color: var(--ink-3);
+  font-size: 0.9rem;
+}
+.skill-offer__md :is(h2, h3, h4, h5, h6) {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+.skill-offer__new {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: var(--r-md);
+  background: var(--tint-leaf);
+}
+.skill-offer__tag {
+  justify-self: start;
+  padding: 2px 10px;
+  border-radius: var(--r-pill);
+  background: rgb(var(--green-deep-rgb) / 0.35);
+  color: var(--green-text);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.skill-offer__md {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.skill-offer__md ul,
+.skill-offer__md ol {
+  display: grid;
+  gap: 4px;
+  padding-left: 1.2em;
+  list-style: disc;
+}
+
 /* A skill's page and its form. The head (with Edit and Delete) and the meta line end where the cards under them end,
    so the buttons never float past the cards on a wide screen. */
 .skill-head,

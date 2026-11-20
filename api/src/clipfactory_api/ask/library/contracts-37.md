@@ -102,7 +102,8 @@ memory for one job. `chat.json` is reused by a Try again (§30) like `loudness.j
 * With no chat, `system_prompt`, `hints`, `read_transcript` and `brief_json` are byte for byte what they were
   (`test_without_signals_every_prompt_is_byte_identical_to_before`). The tool descriptions are unchanged.
 * The built-in skill `viral-clip-editing` §1 "Reading the signals" has a **Chat** block: what it means, the lag, how
-  to weigh it, what to ignore.
+  to weigh it, what to ignore. An owner's own copy of that skill made before it is offered the block, and gets it as a
+  note until then (§38).
 
 ### 37.7 Switches
 

@@ -15,6 +15,7 @@ import { skillPath } from "../../lib/router.ts";
 import { slug, uploadNameTaken } from "../../lib/skillName.ts";
 import { Apple, Panel, usePickAction } from "./parts.tsx";
 import { isNewSkill, isReturningSkill, markNewSkill, useHiddenSkills } from "./skillDeletes.ts";
+import { SkillSectionOffer, type SectionResult } from "./SkillSectionOffer.tsx";
 import { sounds } from "../../lib/sounds.ts";
 
 export const SKILL_FILE_LIMITS = { md: 1024 ** 2, zip: 20 * 1024 ** 2 } as const;
@@ -76,6 +77,17 @@ export function SkillsSection() {
   const pick = usePickAction("upload");
   const id = useId();
   const shown = data?.filter((s) => !hidden.has(s.skillId)) ?? null;
+  // §38: his own copy of a built-in that gained a part since gets a card above the list.
+  const offers = (shown ?? []).flatMap((s) => (s.newSections ?? []).filter((o) => !o.notNow).map((o) => ({ skill: s, offer: o })));
+  const changed = ({ skill, newSections }: SectionResult) =>
+    setData((d) =>
+      (d ?? []).map((s) => {
+        if (s.skillId !== skill.skillId) return s;
+        const listed = newSections.filter((o) => !o.notNow);
+        const { newSections: _old, ...rest } = skill;
+        return listed.length ? { ...rest, newSections: listed } : rest;
+      }),
+    );
 
   async function upload(file: File) {
     pick.play();
@@ -113,6 +125,9 @@ export function SkillsSection() {
           {shown && shown.length === 0 ? (
             <p className="muted">No skills yet. Tap Write a skill to teach Clip Factory how you like your clips.</p>
           ) : null}
+          {offers.map(({ skill, offer }) => (
+            <SkillSectionOffer key={`${skill.skillId} ${offer.key}`} skill={skill} offer={offer} onChange={changed} />
+          ))}
           {shown && shown.length > 0 ? (
             <ul className="skill-list" aria-label="Your skills">
               {shown.map((s) => (

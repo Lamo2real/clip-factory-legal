@@ -108,6 +108,7 @@ def test_budget_cut_and_omission() -> None:
         "included": 4,
         "truncated": 2,
         "omitted": 1,
+        "notes": 0,
         "chars": len(block.text),
     }
     assert '<skills_left_out names="d">These skills were too long to fit this time.</skills_left_out>' in block.text

@@ -256,7 +256,15 @@ def doc(name: str, size: int, builtin: bool = False) -> SkillDoc:
 def test_skills_block_empty() -> None:
     b = skills_block([])
     assert b.text == '<owner_skills count="0"></owner_skills>'
-    assert b.counts == {"builtin": 0, "owner": 0, "included": 0, "truncated": 0, "omitted": 0, "chars": len(b.text)}
+    assert b.counts == {
+        "builtin": 0,
+        "owner": 0,
+        "included": 0,
+        "truncated": 0,
+        "omitted": 0,
+        "notes": 0,
+        "chars": len(b.text),
+    }
 
 
 def test_skills_block_cuts_each_skill_and_keeps_to_the_budget() -> None:
@@ -283,6 +291,7 @@ def test_skills_block_cuts_each_skill_and_keeps_to_the_budget() -> None:
         "included": 4,
         "truncated": 1,
         "omitted": 2,
+        "notes": 0,
         "chars": len(b.text),
     }
 

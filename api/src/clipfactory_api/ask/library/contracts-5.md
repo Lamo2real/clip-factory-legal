@@ -42,6 +42,7 @@ try again in a minute, §17.4), `internal`.
 | PATCH `/v1/skills/{skillId}` | – | always `400 bad_request` "Skills are always used now, so there is no switch." (§18.1; the on/off switch is gone) |
 | DELETE `/v1/skills/{skillId}` | – | `204` (owner skills only; built-ins → `409 conflict`, §18.5) |
 | GET `/v1/skills/{skillId}/content` | – | `{ "content": "<SKILL.md text>" }` (kept for old clients; the web uses `GET /v1/skills/{skillId}`) |
+| POST `/v1/skills/{skillId}/sections` | `{ "key", "action": "add" \| "undo", "version" }` or `{ "key", "action": "not_now" }` | `{ "skill": Skill, "newSections": SectionOffer[] }` (§38.3; owner skills only, built-ins → `409`) |
 | GET `/v1/settings` | – | `{ "settings": Settings }` |
 | PUT `/v1/settings` | `Partial<Settings>` (validated) | `{ "settings": Settings }` |
 | POST `/v1/settings/cookies` | `{ "filename" }` | presigned PUT for an optional YouTube `cookies.txt` (helps when YouTube blocks cloud IPs) |
