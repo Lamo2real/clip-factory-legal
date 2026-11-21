@@ -852,7 +852,8 @@ part's tests pass on their own, whichever part merged first.
 - **Infrastructure** (`terraform test`, mock providers, `infra/modules/contentrewards/tests/*.tftest.hcl` and
   `envs/prod/tests`): `cf-prod-campaigns` env and IAM exactly as §38.16, **no `secretsmanager` action** and media only
   `campaigns/*`; the api and stats invoke grants; no new agent grant; the realtime and notify filters (notify still
-  `MODIFY` only); `content_rewards_enabled` default `false` → `CONTENT_REWARDS = "off"` everywhere, `true` → `"on"`; no
+  `MODIFY` only); `content_rewards_enabled` `false` → `CONTENT_REWARDS = "off"` everywhere, `true` → `"on"` (the
+  modules default to `false`; `envs/prod` defaults to `true` since the switch PR #88 and still plans with `false`); no
   `aws_secretsmanager_secret` for Content Rewards; the plan of an existing state replaces nothing (the delete gate
   test).
 - **Posting** (pytest, `api/tests/test_campaign_posting.py`): every 400 and 409 of Confirm and Try again for a
@@ -970,7 +971,8 @@ All your money while their routes answer 404, and the golden case files are read
   never a $0 for not available) and the `paidByDay` cases (the first read alone, a watermark read during a day scan
   with no double count, a watermark read before the scan in the same tick, an empty `paidMark`, the stale-scan
   restart, the scan across two ticks, YouTube plus Content Rewards giving one USD total).
-- **Infrastructure** (`terraform test`): `cr_remake_enabled` default `false` → `CR_REMAKE = "off"`, `true` → `"on"`,
+- **Infrastructure** (`terraform test`): `cr_remake_enabled` `false` → `CR_REMAKE = "off"`, `true` → `"on"` (the api
+  module defaults to `false`; `envs/prod` defaults to `true` since the switch PR #93 and still plans with `false`),
   nothing replaced.
 - **Agent** (pytest, `agent/tests/test_remake.py` and `test_agent.py`): a `remake` job calls no analyze, watch or
   select, cuts its one moment from `sourceKey` without fetching (and fetches the link when it is absent), reuses the
@@ -1190,11 +1192,12 @@ All your money while their routes answer 404, and the golden case files are read
    - Open the official pages linked in `config/monetization.json` for TikTok, Instagram and X and confirm each number
      (`verifiedHow: official-snippet` today).
 15. **Content Rewards** ([CONTRACTS §38.21](CONTRACTS.md#3821-not-verified-live-each-is-checked-at-the-owners-first-connect-or-first-campaign-post)):
-   these were not checked against the live Content Rewards when the feature was built. Do them after the switch PR
-   ([DEPLOYMENT.md](DEPLOYMENT.md#content-rewards-contracts-38)), with the steps in
-   [SETUP_POSTING.md](SETUP_POSTING.md#content-rewards).
+   these were not checked against the live Content Rewards when the feature was built. The switch PR #88 has merged
+   ([DEPLOYMENT.md](DEPLOYMENT.md#content-rewards-contracts-38)), so do them at the owner's first real Connect and
+   first campaign post, with the steps in [SETUP_POSTING.md](SETUP_POSTING.md#content-rewards).
    - In the deploy log of the first §38 deploy, the plan adds `cf-prod-campaigns` and replaces nothing; the delete
-     gate passes. Until the switch PR, Set up posting shows the Content Rewards card as "Coming soon".
+     gate passes. Before the switch PR, Set up posting showed the Content Rewards card as "Coming soon"; now it shows
+     the setup card.
    - In the Mac app, **Connect Content Rewards**. Note CR's approve screen and its words, whether CR took the
      registration from AWS and the five loopback redirects (a "Sign-in failed" page says no), and whether the answer
      carries `iss`. Secrets Manager (eu-north-1) now has `cf-prod/platforms/contentrewards/app` and `…/token`; the
@@ -1214,7 +1217,8 @@ All your money while their routes answer 404, and the golden case files are read
      wants proof takes it (CR's **Support** chat is the fallback); and which Settings tab shows "Connect your Whop
      account" (the hint says **Profile**).
 16. **Content Rewards: the two ways, all your money and the fit** ([CONTRACTS §39.6](CONTRACTS.md#396-not-verified-live)):
-   not checked live when built. Do them after the §38 checks, and the copy ones after the `cr_remake_enabled` PR.
+   not checked live when built. Do them after the §38 checks; the copy ones too, since the `cr_remake_enabled` PR #93
+   has merged.
    - In the deploy log, the plan changes only the api's environment (`CR_REMAKE`) in place and replaces nothing.
    - Make normal clips from a link at `/` and count the taps to an upload: 5, with no campaign word on the form.
    - On the setup page, note whether **Continue with Google** is still on Content Rewards' sign-up page, how many

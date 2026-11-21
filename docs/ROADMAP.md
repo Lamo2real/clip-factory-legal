@@ -83,7 +83,8 @@ able to understand how to navigate it"):
   proof-of-views reminders.
 - **Getting paid**: Content Rewards' own numbers on the Money page (Still earning, On its way, Ready to move, paid so
   far) and the Whop steps to the bank.
-- Switched off in prod until all six parts (api, posting, agent, web, desktop, docs) have merged; one line turns it on.
+- Switched off in prod until all six parts (api, posting, agent, web, desktop, docs) had merged; the one-line switch
+  PR #88 turned it on (21 Nov 2026), and PR #93 turned on "Make a campaign copy" (§39).
 
 Still open for Content Rewards: CR's sign-in pilot must grant `my_submissions:write` before Clip Factory can send by
 itself (until then: read only and reminders, or, if the sign-in is refused, checking and sending by hand); campaigns

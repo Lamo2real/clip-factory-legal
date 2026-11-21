@@ -106,7 +106,8 @@ understand how to navigate it", from setup to joining, to "Am I in?", to getting
 - **Not there yet.** When the API has no Content Rewards (404) every card, row, part and link is hidden; when it is
   switched off (503 `unavailable`) the setup card says "Coming soon" with no button, and the Campaigns page and Money
   part say "Content Rewards is coming soon to Clip Factory." The fit block, the "could earn" line and All your money
-  stay hidden while their routes answer 404 (the old campaign strip stays), and the copy waits behind its own switch.
+  stay hidden while their routes answer 404 (the old campaign strip stays), and the copy has its own switch. Both
+  switches are on in prod (PR #88 and PR #93); these states show only if one is turned off again.
 
 ### The two ways
 

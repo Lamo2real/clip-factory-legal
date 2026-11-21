@@ -601,7 +601,12 @@ publisher, scheduler and perf-check are removed.
   reads posts; harder to audit). *SSM Parameter Store SecureStrings* (cheaper, but no `CreateSecret`-style lifecycle,
   lower throughput limits, and 4 KB values). *State in a cookie* (the callback is on another domain than the app).
   *An unsigned random state only in DynamoDB* (works, but a signature lets the callback reject junk without a read).
-- **Consequences.** At most about 16 secrets at $0.40 a month each. Only `cf-prod-api`, `cf-prod-hooks`,
+- **Consequences.** At most about 22 secrets in all at $0.40 a month each, about $9 (about 16 when this was decided):
+  two made by Terraform (the state key and the push key `cf-prod/notify/vapid`); 19 made at runtime by the app (an
+  app and a token secret for each of the five platforms, the short-lived pending choice of Instagram and Facebook,
+  Content Rewards' app and token, the four badge keys `cf-prod/platforms/{twitch/app, kick/app, youtube/readkey,
+  twitch/eventsub}` and Ask's search key); and the optional YouTube proxy the owner may add by hand. Only
+  `cf-prod-api`, `cf-prod-hooks`,
   `cf-prod-clip-flow` and `cf-prod-stats` may touch the `cf-prod/platforms/*` prefix, and the last two may write only
   the token secrets (`cf-prod/platforms/*/token-*`) ([SECURITY.md](SECURITY.md#platform-keys-and-tokens)). A lost race on a rotating refresh token cannot strand the
   account. Rotating the state key ends Connects that are in flight, nothing else.
@@ -1592,7 +1597,8 @@ Two taps for a standard upload; each platform's options in its own row; TikTok's
   ("#Ad") first in the caption, the required tags, "Paid partnership" on screen for 3 seconds and the logo in the
   band above the picture. CR is a separate connection, never a sixth `Platform`, and money from CR is shown only as CR
   reports it (§25 extended; "paid" is allowed only next to CR's paid payouts). The whole feature ships switched off
-  (`content_rewards_enabled = false`) and is turned on by one line once every part has merged.
+  (`content_rewards_enabled = false`) and is turned on by one line once every part has merged (done: the switch PR
+  #88, 21 Nov 2026, so it is on).
 - **Consequences.** The owner signs in on the Mac once and again at least every 90 days (a week's warning); after
   that everything runs in the cloud, so a phone upload is sent too. CR's pilot may refuse the write scope at first:
   then Clip Factory reads campaigns and money and reminds him after each post (and every 3 days to try Connect
@@ -1643,7 +1649,7 @@ Two taps for a standard upload; each platform's options in its own row; TikTok's
   tap makes one), then makes a one-clip campaign job from the same source and moment (A's campaign checks, rules
   snapshot and logo copy), cut from the original's kept video when it is there; the agent skips finding moments for
   it, and a moment can earn on one campaign only; the copy waits behind `cr_remake_enabled` (default off) until the
-  agent's part has merged. Option (iii): `GET /v1/money/everywhere`, pure on the server, CR's paid payouts kept by day
+  agent's part has merged (done: its switch PR #93 turned it on). Option (iii): `GET /v1/money/everywhere`, pure on the server, CR's paid payouts kept by day
   (`CRMONEY.paidByDay`, filled once for older owners by a day scan that never changes the paid total); the card is the
   first on the Money page with the biggest number, and the MRR cards stay platform-only and say so. The normal way is
   frozen: Home's form at `/` and the Review card of a clip with no campaign keep origin/main's controls and taps (5 to

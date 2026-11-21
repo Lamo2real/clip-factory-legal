@@ -683,7 +683,8 @@ callout also has **Ask TikTok again**, which fetches the creator info again.
   `/oauth`) from `oauth_callback_base`; `test-write-web-config.sh` covers it; `upload-web.sh` excludes `tiktok*.txt`
   from deletes. §4 config gains `"oauthCallbackBase"`; the web treats it as optional (mock mode) and uses it only
   until `GET /v1/setup` answers.
-* **Cost**: ≤ 16 secrets × $0.40/month.
+* **Cost**: ≤ 16 secrets × $0.40/month for this change (the state key and three per platform); about 22 in all today
+  (ADR-34).
 
 ### 17.10 Web mock mode (offline, `VITE_MOCK=1`)
 

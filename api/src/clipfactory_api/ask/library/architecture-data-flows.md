@@ -865,10 +865,11 @@ the owner's steps in [SETUP_POSTING.md](SETUP_POSTING.md#content-rewards)). Numb
 
 CR is **not** a sixth `Platform`: it is its own connection (`CRCONN`), its own card on Set up posting, its own routes
 under `/v1/contentrewards` and its own items. The five platforms, `GET /v1/setup`, the setup to-do list and the
-publish chain behave exactly as before when no campaign is involved. The whole feature ships switched off
-(`content_rewards_enabled = false` → `CONTENT_REWARDS=off`: every `/v1/contentrewards*` route answers 503
-`unavailable` and the clip flow sends nothing) until every part of §38.19 has merged; one last one-line PR switches it
-on ([DEPLOYMENT.md](DEPLOYMENT.md#content-rewards-contracts-38)).
+publish chain behave exactly as before when no campaign is involved. The feature is **on** in prod
+(`content_rewards_enabled = true` → `CONTENT_REWARDS=on`). It shipped switched off while its parts were built
+(`false` → `CONTENT_REWARDS=off`: every `/v1/contentrewards*` route answers 503 `unavailable` and the clip flow sends
+nothing); once every part of §38.19 had merged, the one-line switch PR #88 (21 Nov 2026) turned it on. Setting the
+default back to `false` turns it off the same way ([DEPLOYMENT.md](DEPLOYMENT.md#content-rewards-contracts-38)).
 
 **Who talks to Content Rewards.** Only `cf-prod-api`, `cf-prod-clip-flow` and `cf-prod-stats`, server to server.
 Never the browser (CR answers 403 to any MCP request that carries an `Origin` header, and the token lives only in
@@ -1113,8 +1114,9 @@ sequenceDiagram
 A second call answers 200 with the job already named, so a double tap makes one copy; a failed, canceled or deleted
 job, or a declined copy, frees the reservation. A link job whose kept video is gone fetches the link again; a video file
 answers 409 "This video is gone from Clip Factory. Make new clips for this campaign." The agent's side is in
-[AGENT.md](AGENT.md#a-campaign-copy). The copy waits behind `CR_REMAKE` (Terraform `cr_remake_enabled`, default
-`false`): until then the route answers 503 "Coming soon." and `canRemake` is false, so no "could earn" line shows.
+[AGENT.md](AGENT.md#a-campaign-copy). The copy has its own switch, `CR_REMAKE` (Terraform `cr_remake_enabled`).
+It shipped off and is **on** in prod since its switch PR #93 (21 Nov 2026). Turned off, the route answers 503 "Coming
+soon." and `canRemake` is false, so no "could earn" line shows.
 
 **All your money** (`GET /v1/money/everywhere`, `money/everywhere.py`, pure). One period for the whole card, the 30
 days up to the Monthly card's `through` (today when no platform money is stored). It reads `MONEYSTATE#`,
@@ -1134,6 +1136,6 @@ the watermark) fills it and never touches the paid total.
 | `JOB#{jobId}` | `remakeOf` (public), `remake` (internal), `sourceLanguage` (public, from Transcribe), `source.channelKeys` (public) |
 | `CLIP#{clipId}` | `remakes` (public, campaign → {jobId, at}), `remakeOf` (public) |
 | `CRMONEY` | `paidByDay`, `paidByDayDone`, `dayScan` (internal) |
-| api env | `CR_REMAKE` from `cr_remake_enabled` (default `false`), an in-place change |
+| api env | `CR_REMAKE` from `cr_remake_enabled` (shipped `false`; default `true` since PR #93), an in-place change |
 
 No sort key, index, table, bucket, secret or Lambda is added, and nothing that holds the owner's data is replaced.

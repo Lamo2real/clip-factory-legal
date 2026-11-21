@@ -470,7 +470,8 @@ as well". ([CONTRACTS.md §39.3](CONTRACTS.md#393-does-this-clip-fit-the-campaig
   gets one quiet line under Checks before posting: "This clip could earn money on {name}." with "Make a {name} copy"
   and "Not now". The copy (the campaign's logo, "Paid partnership" on the video and #Ad) arrives right below it on the
   same Review page in about 3 minutes and uploads in **3 taps**; the original stays as it is and keeps its own 2-tap
-  upload. With no campaign nothing shows. The copy waits behind a switch, off, until the agent's part has shipped.
+  upload. With no campaign nothing shows. The copy has its own switch: it shipped off and is on since PR #93, once
+  the agent's part had shipped.
 - AC6: Clip Factory never calls a rule it can't check a pass: it says "I couldn't check: …" and the owner can answer
   "I read them. They're OK" (kept on that device only, never needed to upload, never shown as a Clip Factory tick).
 - AC7: Length, source video, language, banned content, the deadline and another campaign are never "fixed" on the

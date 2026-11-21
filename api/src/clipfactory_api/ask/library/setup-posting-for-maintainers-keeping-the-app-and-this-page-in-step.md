@@ -17,7 +17,9 @@
   `web/src/setup/types.ts`; it is not in the five-guide list). The contract for its step ids, titles, parts and words
   is [CONTRACTS.md §38.3](CONTRACTS.md#383-one-time-setup-journey-a) (setup), [§38.4](CONTRACTS.md#384-adding-and-joining-a-campaign-journey-b)
   (part `join`) and [§38.7](CONTRACTS.md#387-getting-paid-journey-e) (parts `move` and `bank`). Under `## Content Rewards`
-  every `CR_GUIDE` step title appears; `setup-docs.test.ts` checks it once that heading exists. Its "Steps checked on"
+  each `CR_GUIDE` part title is a `### Part N:` heading and each step title (and "Content Rewards said no?") a `####`
+  heading, word for word and in the app's order (the setup steps keep their number: `#### 1. …`); the "once" and
+  "each time" go on the line under the heading, never in it. `setup-docs.test.ts` checks it. Its "Steps checked on"
   date is its own (21 Nov 2026), with its sources at the end of that section. **Bold** there means Content Rewards'
   (or Whop's) exact label, word for word; when Content Rewards renames one, change `CR_GUIDE` and this page together
   and keep the step id. Why it is built this way: [ADR-62](DECISIONS.md#adr-62-content-rewards-the-official-sign-in-through-the-desktop-apps-loopback-door-sending-from-the-cloud-a-reminder-when-it-cant).

@@ -18,7 +18,12 @@
   reads posts; harder to audit). *SSM Parameter Store SecureStrings* (cheaper, but no `CreateSecret`-style lifecycle,
   lower throughput limits, and 4 KB values). *State in a cookie* (the callback is on another domain than the app).
   *An unsigned random state only in DynamoDB* (works, but a signature lets the callback reject junk without a read).
-- **Consequences.** At most about 16 secrets at $0.40 a month each. Only `cf-prod-api`, `cf-prod-hooks`,
+- **Consequences.** At most about 22 secrets in all at $0.40 a month each, about $9 (about 16 when this was decided):
+  two made by Terraform (the state key and the push key `cf-prod/notify/vapid`); 19 made at runtime by the app (an
+  app and a token secret for each of the five platforms, the short-lived pending choice of Instagram and Facebook,
+  Content Rewards' app and token, the four badge keys `cf-prod/platforms/{twitch/app, kick/app, youtube/readkey,
+  twitch/eventsub}` and Ask's search key); and the optional YouTube proxy the owner may add by hand. Only
+  `cf-prod-api`, `cf-prod-hooks`,
   `cf-prod-clip-flow` and `cf-prod-stats` may touch the `cf-prod/platforms/*` prefix, and the last two may write only
   the token secrets (`cf-prod/platforms/*/token-*`) ([SECURITY.md](SECURITY.md#platform-keys-and-tokens)). A lost race on a rotating refresh token cannot strand the
   account. Rotating the state key ends Connects that are in flight, nothing else.

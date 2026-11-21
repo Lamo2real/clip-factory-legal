@@ -59,5 +59,5 @@ internal `job.remake {clipId, jobId, sourceStart, sourceEnd, layout, momentType,
 | Finalize | One clip with `campaignId` and `remakeOf {clipId, jobId}` (from `remake`). |
 
 **A job without `remake` is byte for byte today's**: the same prompts, tool descriptions, briefs and files (a test).
-The copy waits behind the api switch `CR_REMAKE` (off by default) until this part has shipped; before it, no job ever
-carries `remake`.
+The copy has its own api switch, `CR_REMAKE` (Terraform `cr_remake_enabled`): it shipped off and is on in prod since its
+switch PR #93 (21 Nov 2026); before that, no job ever carried `remake`.

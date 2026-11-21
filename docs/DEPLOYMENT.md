@@ -318,13 +318,15 @@ the public `oauthCallbackBase`.
 
 **Content Rewards** (paid campaigns) is set up the same way, inside the app: Settings › Posting › Set up posting ›
 Content Rewards, with the last step in the Mac app ([SETUP_POSTING.md](SETUP_POSTING.md#content-rewards)). It is
-switched off until all its parts have merged ([Content Rewards](#content-rewards-contracts-38)).
+switched on: it shipped off and the switch PR #88 turned it on once all its parts had merged
+([Content Rewards](#content-rewards-contracts-38)).
 
 What this deploy changes for posting: `cf-prod-hooks` runs up to **28 s** (the code exchange calls the platform),
-`cf-prod-clip-flow` has **1024 MB** (chunked uploads), and Secrets Manager holds at most about **18 secrets** (the
-state key, an app, token and short-lived pending secret per platform, and Content Rewards' app and token) at $0.40
-each, so about $7 a month at most
-([ARCHITECTURE.md](ARCHITECTURE.md#lambda-functions)).
+`cf-prod-clip-flow` has **1024 MB** (chunked uploads), and Secrets Manager holds at most about **22 secrets** in all
+(the state key, the push key, an app and a token secret per platform, Instagram's and Facebook's short-lived pending
+choice, Content Rewards' app and token, the four badge keys, Ask's search key and the optional YouTube proxy) at
+$0.40 each, so about $9 a month at most
+([ARCHITECTURE.md](ARCHITECTURE.md#lambda-functions), [ADR-34](DECISIONS.md#adr-34-oauth-with-a-signed-single-use-state-tokens-only-in-secrets-manager)).
 
 For webhooks (not built yet), a platform console would need:
 
@@ -573,17 +575,23 @@ Paid clipping campaigns on Content Rewards ([CONTRACTS.md §38](CONTRACTS.md#38-
 the owner's steps in [SETUP_POSTING.md](SETUP_POSTING.md#content-rewards)). Nothing to set up in AWS or GitHub by
 hand: the owner connects inside the Mac app, and the app makes its own secrets.
 
-**Switched off until every part is in.** `infra/envs/prod` has `variable "content_rewards_enabled"` (bool,
-**default `false`**). It sets `CONTENT_REWARDS = "off"` on `cf-prod-api`, `cf-prod-stats`, `cf-prod-clip-flow` and
-`cf-prod-campaigns`, so every `/v1/contentrewards*` route answers 503 `unavailable` ("Content Rewards is not switched
-on for this app yet."), the clip flow sends nothing and the stats tick skips Content Rewards. The web app then shows
-"Coming soon" on the Set up posting card. The parts are built in parallel (CONTRACTS §38.19: api, posting, agent,
-web, desktop, docs) and merge in any order, each passing CI alone.
+**Switched on (PR #88).** `infra/envs/prod` has `variable "content_rewards_enabled"` (bool, **default `true`**). It
+sets `CONTENT_REWARDS` on `cf-prod-api`, `cf-prod-stats`, `cf-prod-clip-flow` and `cf-prod-campaigns`. It shipped
+with default `false` while the parts were built in parallel (CONTRACTS §38.19: api, posting, agent, web, desktop,
+docs), each merging in any order and passing CI alone. Off (`CONTENT_REWARDS = "off"`), every `/v1/contentrewards*`
+route answers 503 `unavailable` ("Content Rewards is not switched on for this app yet."), the clip flow sends nothing,
+the stats tick skips Content Rewards and the web app shows "Coming soon" on the Set up posting card.
 
-**The switch PR.** After all six parts have merged, one last pull request (builder A owns the line) changes the
-default to `true`; its deploy sets `CONTENT_REWARDS = "on"` everywhere. That is the only change it makes. Before it,
-no campaign clip can go out without the paid-partnership and caption code and the logo and on-screen disclosure. To
-turn it off again later, revert that one line.
+**The switch PR.** After all six parts had merged, one last pull request (#88, builder A's line, 21 Nov 2026)
+changed the default to `true`; its deploy set `CONTENT_REWARDS = "on"` everywhere, and that was the only change it
+made. So no campaign clip could go out before the paid-partnership and caption code and the logo and on-screen
+disclosure were in. To turn it off again, set the default back to `false` (revert that one line); no owner data is
+touched either way.
+
+**Make a campaign copy (CONTRACTS §39.3).** Its own switch, `variable "cr_remake_enabled"` (bool, **default
+`true`**), sets `CR_REMAKE` on `cf-prod-api`, an in-place env change. It shipped `false` (the copy route answered 503
+"Coming soon." and no fit offered a copy); its switch PR #93 set it to `true` once G, H and I of §39.4 had merged.
+Turn it off the same way.
 
 **What the first deploy with §38 adds** (additive only, the plan in the deploy log shows it):
 - one new Lambda `cf-prod-campaigns` (the one zip, 512 MB, 120 s, async only, retries 0), its log group (same

@@ -535,7 +535,8 @@ part's tests pass on their own, whichever part merged first.
 - **Infrastructure** (`terraform test`, mock providers, `infra/modules/contentrewards/tests/*.tftest.hcl` and
   `envs/prod/tests`): `cf-prod-campaigns` env and IAM exactly as §38.16, **no `secretsmanager` action** and media only
   `campaigns/*`; the api and stats invoke grants; no new agent grant; the realtime and notify filters (notify still
-  `MODIFY` only); `content_rewards_enabled` default `false` → `CONTENT_REWARDS = "off"` everywhere, `true` → `"on"`; no
+  `MODIFY` only); `content_rewards_enabled` `false` → `CONTENT_REWARDS = "off"` everywhere, `true` → `"on"` (the
+  modules default to `false`; `envs/prod` defaults to `true` since the switch PR #88 and still plans with `false`); no
   `aws_secretsmanager_secret` for Content Rewards; the plan of an existing state replaces nothing (the delete gate
   test).
 - **Posting** (pytest, `api/tests/test_campaign_posting.py`): every 400 and 409 of Confirm and Try again for a
@@ -653,7 +654,8 @@ All your money while their routes answer 404, and the golden case files are read
   never a $0 for not available) and the `paidByDay` cases (the first read alone, a watermark read during a day scan
   with no double count, a watermark read before the scan in the same tick, an empty `paidMark`, the stale-scan
   restart, the scan across two ticks, YouTube plus Content Rewards giving one USD total).
-- **Infrastructure** (`terraform test`): `cr_remake_enabled` default `false` → `CR_REMAKE = "off"`, `true` → `"on"`,
+- **Infrastructure** (`terraform test`): `cr_remake_enabled` `false` → `CR_REMAKE = "off"`, `true` → `"on"` (the api
+  module defaults to `false`; `envs/prod` defaults to `true` since the switch PR #93 and still plans with `false`),
   nothing replaced.
 - **Agent** (pytest, `agent/tests/test_remake.py` and `test_agent.py`): a `remake` job calls no analyze, watch or
   select, cuts its one moment from `sourceKey` without fetching (and fetches the link when it is absent), reuses the

@@ -11,8 +11,8 @@ Rewards for you. Whop is the website where Content Rewards sends your money. Fro
 Content Rewards is **not** one of the five places above. In Settings › Posting › Set up posting it has its own
 card under the five, in a part called "Get paid by brands". It never counts in "2 of 5 ready" and is never in the
 floating Set up posting list. Your campaigns live on the "Campaigns" page (`/campaigns`, also a row on Home), and
-the campaign money on the "Money" page (`/money#content-rewards`). Until the feature is switched on for your app,
-the card says "Coming soon".
+the campaign money on the "Money" page (`/money#content-rewards`). It is switched on. If it is ever switched off
+for your app, the card says "Coming soon".
 
 How many steps each thing takes. Waiting is never a step: Clip Factory watches and tells you.
 
@@ -40,26 +40,28 @@ are in quotes. Content Rewards' help pages sometimes use older names:
 
 Whop's screens were not seen; those steps say "Whop may show this a little differently. Look for the same words."
 
-| # | Step | Part |
-|---|---|---|
-| 1 | Make a Content Rewards account | Set up |
-| 2 | Add your accounts there | Set up |
-| 3 | Connect Content Rewards | Set up |
-| – | Content Rewards said no? (only if you need it) | Set up |
-| – | Pick a campaign | Add a campaign |
-| – | Join it | Add a campaign |
-| – | Copy its link | Add a campaign |
-| – | Link your Whop account (you said No to **Finance**) | Get paid |
-| – | Move money to Whop | Get paid |
-| – | Add your bank on Whop (you said No to **Finance**) | Get paid |
-| – | Get it to your bank (you said No to **Finance**) | Get paid |
-| – | Set up payouts (you said Yes to **Finance**) | Get paid |
-| – | Get it to your bank (you said Yes to **Finance**) | Get paid |
+The step and part names below are the app's own, word for word.
+
+| # | Step | Part | When |
+|---|---|---|---|
+| 1 | Make a Content Rewards account | Set it up once | Once |
+| 2 | Add your accounts there | Set it up once | Once |
+| 3 | Connect Content Rewards | Set it up once | Once |
+| – | Content Rewards said no? | Set it up once | Only if Content Rewards says your account can't connect apps |
+| – | Pick a campaign | Join a campaign | Each campaign |
+| – | Join it | Join a campaign | Each campaign |
+| – | Copy its link | Join a campaign | Each campaign |
+| – | Link your Whop account | Move your money to Whop | Once, if you said No to **Finance** |
+| – | Set up payouts | Move your money to Whop | Once, if you said Yes to **Finance** |
+| – | Move money to Whop | Move your money to Whop | Each time |
+| – | Add your bank on Whop | Get it to your bank | Once, if you said No to **Finance** |
+| – | Get it to your bank | Get it to your bank | Each time, on Whop, if you said No to **Finance** |
+| – | Get it to your bank | Get it to your bank | Each time, with **Finance**, if you said Yes |
 
 Only the three setup steps have numbers, and the ring counts only them. The other cards are helpers: they show on
 the Campaigns page and in the Money page's Content Rewards part.
 
-### Part 1: Set up (once)
+### Part 1: Set it up once
 
 Already use Content Rewards, with your accounts added there? The page asks it first: tap "Yes" and steps 1 and 2
 tick, so only step 3 is left. With a way back (for example from a campaign), the page's last button takes you back
@@ -189,9 +191,9 @@ The email, written for Content Rewards' support team (Clip Factory fills it in):
   takes one minute." Tap "Connect again" on your Mac. Your phone gets a reminder too.
 - No campaign yet? Tap "Add a campaign".
 
-### Part 2: Add a campaign (each campaign)
+### Part 2: Join a campaign
 
-The Campaigns page shows these three cards until you add your first campaign. While the box at the top is empty, the
+Do this for each campaign. The Campaigns page shows these three cards until you add your first campaign. While the box at the top is empty, the
 red button is "Open Content Rewards". Once a campaign link is in the box, "Add campaign" is the red one.
 
 #### Pick a campaign
@@ -438,7 +440,7 @@ how." and the line says "To do: send the brand a screen recording of this clip's
 Then tap "I sent it". How to record your screen: on an iPhone, swipe down from the top right corner, tap the round
 record button, and tap it again to stop. On a Mac, press Shift, Command and 5, then click **Record Entire Screen**.
 
-### Part 5: Get paid
+### Part 5: Move your money to Whop
 
 The Money page has a Content Rewards part. Whop is the website where Content Rewards sends your money. From there it
 goes to your bank.
@@ -456,16 +458,31 @@ brand hasn't checked yet show $0 until the brand says yes.
 First, one question, asked once: "Do you see **Finance** in the Content Rewards menu?" Tap "Yes" or "No". "Change my
 answer" asks again. When "Ready to move" is $1.00 or more, "Move your money to Whop" is the red step.
 
-**If you said No:**
+**If you said No**, link Whop once:
 
-#### Link your Whop account (once)
+#### Link your Whop account
+Once.
 - No Whop account? Tap **Open Whop** and make one with the same email.
 - Tap "Open Content Rewards settings". Find Connect your Whop account and tap **Open Whop**.
 - Sign in to Whop and allow it. Then come back. Tap "I did this".
 - Can't find it? Tap **Profile** and look again. "Could not open Whop. Try again.": tap **Open Whop** again. "already
   connected to another creator": use your own Whop account, or ask Content Rewards support.
 
-#### Move money to Whop (each time)
+**If you said Yes**, set up payouts once:
+
+#### Set up payouts
+Once.
+- Tap "Open Content Rewards". Tap **Finance** in the menu. You'll see **Set up payouts**.
+- Do each one: **Verify your identity**, **Set your tax handling**, **Turn on two-factor auth**, **Add a bank
+  account**.
+- Some open on Whop. Tap **Continue on Whop**, finish there, then come back. Tap "I did this".
+- "Your details are in review with Whop": nothing to do, wait a day or two. "Setup session expired": tap **Continue on
+  Whop** again. "Payouts are turned off": ask Content Rewards support.
+
+**Then, each time** (No or Yes):
+
+#### Move money to Whop
+Each time.
 - Tap the "Amount" chip to copy it (for example 18.25). Tap "Open Earnings".
 - Tap **Withdraw**. Paste the amount in **Amount**. It must be $1.00 or more.
 - Tap **Withdraw** again.
@@ -479,7 +496,15 @@ answer" asks again. When "Ready to move" is $1.00 or more, "Move your money to W
 | **Add your phone number** | Type your number and tap **Save number**, or tap **Skip**. |
 | "Your withdrawal is processing" | Tap **Try again** with the same amount. |
 
-#### Add your bank on Whop (once)
+Celebrations come once each: "Your first money from Content Rewards!", "Money from Content Rewards! $4.21 is in your
+balance." and "You can move $18.25 to Whop now."
+
+### Part 6: Get it to your bank
+
+**If you said No:**
+
+#### Add your bank on Whop
+Once.
 - Tap "Open Whop". Tap **Dashboard**, then **Balances**, then **Payout methods**.
 - Tap **Add payout method**. Type your bank details.
 - Whop checks your ID once. It wants a photo of your ID and a selfie. It can take a day or two.
@@ -487,7 +512,8 @@ answer" asks again. When "Ready to move" is $1.00 or more, "Move your money to W
   **Text message**.
 - Whop may show this a little differently. Look for the same words. Tap "I did this".
 
-#### Get it to your bank (each time, on Whop)
+#### Get it to your bank
+Each time, on Whop.
 - Tap the "Amount" chip. Tap "Open Whop".
 - Tap **Balances** (or **Profile**, then **Balance**). Tap **Withdraw**.
 - Paste the amount in **Amount**. Tap **Continue**. Tap **Payout**.
@@ -497,23 +523,11 @@ answer" asks again. When "Ready to move" is $1.00 or more, "Move your money to W
 
 **If you said Yes:**
 
-#### Set up payouts (once)
-- Tap "Open Content Rewards". Tap **Finance** in the menu. You'll see **Set up payouts**.
-- Do each one: **Verify your identity**, **Set your tax handling**, **Turn on two-factor auth**, **Add a bank
-  account**.
-- Some open on Whop. Tap **Continue on Whop**, finish there, then come back. Tap "I did this".
-- "Your details are in review with Whop": nothing to do, wait a day or two. "Setup session expired": tap **Continue on
-  Whop** again. "Payouts are turned off": ask Content Rewards support.
-
-Then "Move money to Whop" (above), each time.
-
-#### Get it to your bank (each time, with Finance)
+#### Get it to your bank
+Each time, with **Finance**.
 - Tap **Finance**. Look under Recent withdrawals.
 - Processing to bank means it's on its way.
 - "Bank send didn't go through": tap **Manage** and check your bank details.
-
-Celebrations come once each: "Your first money from Content Rewards!", "Money from Content Rewards! $4.21 is in your
-balance." and "You can move $18.25 to Whop now."
 
 ### If Content Rewards says something went wrong
 

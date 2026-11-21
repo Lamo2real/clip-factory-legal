@@ -46,7 +46,8 @@
   ("#Ad") first in the caption, the required tags, "Paid partnership" on screen for 3 seconds and the logo in the
   band above the picture. CR is a separate connection, never a sixth `Platform`, and money from CR is shown only as CR
   reports it (§25 extended; "paid" is allowed only next to CR's paid payouts). The whole feature ships switched off
-  (`content_rewards_enabled = false`) and is turned on by one line once every part has merged.
+  (`content_rewards_enabled = false`) and is turned on by one line once every part has merged (done: the switch PR
+  #88, 21 Nov 2026, so it is on).
 - **Consequences.** The owner signs in on the Mac once and again at least every 90 days (a week's warning); after
   that everything runs in the cloud, so a phone upload is sent too. CR's pilot may refuse the write scope at first:
   then Clip Factory reads campaigns and money and reminds him after each post (and every 3 days to try Connect

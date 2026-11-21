@@ -66,11 +66,12 @@
    - Open the official pages linked in `config/monetization.json` for TikTok, Instagram and X and confirm each number
      (`verifiedHow: official-snippet` today).
 15. **Content Rewards** ([CONTRACTS §38.21](CONTRACTS.md#3821-not-verified-live-each-is-checked-at-the-owners-first-connect-or-first-campaign-post)):
-   these were not checked against the live Content Rewards when the feature was built. Do them after the switch PR
-   ([DEPLOYMENT.md](DEPLOYMENT.md#content-rewards-contracts-38)), with the steps in
-   [SETUP_POSTING.md](SETUP_POSTING.md#content-rewards).
+   these were not checked against the live Content Rewards when the feature was built. The switch PR #88 has merged
+   ([DEPLOYMENT.md](DEPLOYMENT.md#content-rewards-contracts-38)), so do them at the owner's first real Connect and
+   first campaign post, with the steps in [SETUP_POSTING.md](SETUP_POSTING.md#content-rewards).
    - In the deploy log of the first §38 deploy, the plan adds `cf-prod-campaigns` and replaces nothing; the delete
-     gate passes. Until the switch PR, Set up posting shows the Content Rewards card as "Coming soon".
+     gate passes. Before the switch PR, Set up posting showed the Content Rewards card as "Coming soon"; now it shows
+     the setup card.
    - In the Mac app, **Connect Content Rewards**. Note CR's approve screen and its words, whether CR took the
      registration from AWS and the five loopback redirects (a "Sign-in failed" page says no), and whether the answer
      carries `iss`. Secrets Manager (eu-north-1) now has `cf-prod/platforms/contentrewards/app` and `…/token`; the
@@ -90,7 +91,8 @@
      wants proof takes it (CR's **Support** chat is the fallback); and which Settings tab shows "Connect your Whop
      account" (the hint says **Profile**).
 16. **Content Rewards: the two ways, all your money and the fit** ([CONTRACTS §39.6](CONTRACTS.md#396-not-verified-live)):
-   not checked live when built. Do them after the §38 checks, and the copy ones after the `cr_remake_enabled` PR.
+   not checked live when built. Do them after the §38 checks; the copy ones too, since the `cr_remake_enabled` PR #93
+   has merged.
    - In the deploy log, the plan changes only the api's environment (`CR_REMAKE`) in place and replaces nothing.
    - Make normal clips from a link at `/` and count the taps to an upload: 5, with no campaign word on the form.
    - On the setup page, note whether **Continue with Google** is still on Content Rewards' sign-up page, how many

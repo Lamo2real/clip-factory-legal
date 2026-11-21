@@ -568,7 +568,7 @@ attributes):
 | `JOB#{jobId}` | `remakeOf` (public, G), `remake` (internal, G), `sourceLanguage` (public, I; G copies it onto a copy), `source.channelKeys` (public, I) |
 | `CLIP#{clipId}` | `remakes` (public map `campaignId → {jobId, at}`, G), `remakeOf` (public `{clipId, jobId}`, I) |
 | `CRMONEY` | `paidByDay` (map day → cents), `paidByDayDone`, `dayScan` (internal) (G) |
-| api env | `CR_REMAKE` from Terraform `cr_remake_enabled` (bool, **default `false`**), an in-place env change; the plan replaces and deletes nothing that holds the owner's data |
+| api env | `CR_REMAKE` from Terraform `cr_remake_enabled` (bool; shipped **default `false`**, `true` in `envs/prod` since PR #93), an in-place env change; the plan replaces and deletes nothing that holds the owner's data |
 
 ### 39.4 Who builds what (after A `feature/cr-api` and D `feature/cr-web` have merged)
 
@@ -659,8 +659,8 @@ attributes):
   `gates.next_step`'s `connect` href with `?back=`; `nextStepKind`, `sourceRuleText`, `languageRuleText`;
   `money_everywhere_cases.json` (each state per place, the where lines word for word, the period equal to the Monthly
   card's, totals per currency, `usd` → `USD`, CR cents → micros, never a $0 for not available) and the `paidByDay`
-  cases of §39.2; `terraform test`: `cr_remake_enabled` default `false` → `CR_REMAKE = "off"`, `true` → `"on"`, nothing
-  replaced.
+  cases of §39.2; `terraform test`: `cr_remake_enabled` `false` → `CR_REMAKE = "off"`, `true` → `"on"` (the api module
+  defaults `false`; `envs/prod` defaults `true` since PR #93 and still plans with `false`), nothing replaced.
 * **agent (I)**: a `remake` job calls no analyze, watch or select, cuts its one moment from `sourceKey` without
   fetching (and fetches the link when it is absent), reuses the kept words without the full-audio download (and
   transcribes when they are gone), renders with the campaign marks, writes captions, the checklist and `remakeOf

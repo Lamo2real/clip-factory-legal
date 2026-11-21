@@ -81,7 +81,8 @@ cloud ([CONTRACTS.md §38](CONTRACTS.md#38-content-rewards-campaigns-owner-reque
 [ADR-62](DECISIONS.md#adr-62-content-rewards-the-official-sign-in-through-the-desktop-apps-loopback-door-sending-from-the-cloud-a-reminder-when-it-cant),
 [ARCHITECTURE.md flow 19](ARCHITECTURE.md#19-content-rewards-campaigns-contracts-38-adr-62)). Each protection below
 ships with its part ([CONTRACTS.md §38.19](CONTRACTS.md#3819-who-builds-what-parallel-builders-each-stays-inside-its-files)),
-and the whole feature stays switched off (`CONTENT_REWARDS=off`, every route 503) until every part has merged.
+and the whole feature stayed switched off (`CONTENT_REWARDS=off`, every route 503) until every part had merged; the
+switch PR #88 turned it on.
 
 | What | How it is protected |
 |---|---|

@@ -13,9 +13,10 @@ What this section adds, and what it leaves alone: CR is **not** a sixth `Platfor
 (`CRCONN`), its own card on Set up posting, its own routes under `/v1/contentrewards`, its own items. The five
 platforms, the setup to-do list (§17.13: still exactly five rows), `GET /v1/setup`, the publish chain (§17.6), the
 money rule (§25) and every existing item keep working byte for byte when no campaign is involved. Where this section
-and an earlier one disagree about a **campaign** clip, this one wins. The whole feature stays switched off in prod
-(`content_rewards_enabled = false`, §38.16) until every builder's part of §38.19 has merged; one last one-line PR turns
-it on.
+and an earlier one disagree about a **campaign** clip, this one wins. The whole feature stayed switched off in prod
+(`content_rewards_enabled = false`, §38.16) until every builder's part of §38.19 had merged; then the one-line switch
+PR #88 (21 Nov 2026) turned it on, so it is **on** in prod. The campaign copy of §39.3 has its own switch, on since PR
+#93.
 
 Facts it rests on (checked 21 Nov 2026; sources in `docs/SETUP_POSTING.md` § Content Rewards): CR (contentrewards.com,
 its own app since August 2026; Whop still pays out) has an official **MCP server** `https://mcp.contentrewards.com/mcp`
@@ -507,7 +508,9 @@ platform estimates; it has its own part.
   paid line says "Checking…".
 * "Ready to move" of $1.00 or more makes "Move your money to Whop" the part's vermilion step. When a move to Whop has
   just finished (`withdrawal_pending` went back to 0 after being above 0, `auto: money_moved`), the bank step is the
-  vermilion once: "Your money is on Whop. Move it to your bank." with "Open Whop".
+  vermilion once: "Your money is on Whop. Move it to your bank." with "Open Whop". The web knows it from the money
+  answer's `movedAt` when it is there (§38.8), so every device knows; without it (an older api), only the device that
+  saw it happen knows, from today's memo there.
 * Celebrations (once each, §38.11): the first money ever (only when paid-so-far was $0 before) "Your first money from
   Content Rewards!"; later payouts "Money from Content Rewards! $4.21 is in your balance."; `available` reaching $1.00
   "You can move $18.25 to Whop now." Confetti on the Money page, a notification on the phone. The first complete read
@@ -690,6 +693,8 @@ interface CrMoney {
   lastPaidCents?: number; waitingForBrand: number /* campaign clips CR still has pending at $0 */;
   campaigns: { campaignId?: string; name: string; paidCents: number; pendingCents: number }[];
   celebrations: { key: string; kind: "first_money" | "money_arrived" | "can_move"; text: string }[];
+  movedAt?: string | null /* ISO time Clip Factory last saw money leave CR's balance toward Whop (withdrawal_pending
+                             went from above 0 back to 0); null before any move; absent from an older api */;
 }
 interface JobCampaign {                            // internal Job attribute: the rules this job follows
   campaignId: string; crId?: string; name: string; brand: string; platformsPaid: Platform[];
@@ -958,7 +963,7 @@ This is checked at the first Connect (and logged once as `cr.typeid_verified` or
 | Connect state | `USER#{userId}` | `CRSTATE#{nonce}` | `type="crstate"`, `port`, `redirectUri`, `clientId`, `exp`, `ttl` |
 | Campaign | `USER#{userId}` | `CAMPAIGN#{uuid}` | `type="campaign"`, the stored fields of `Campaign` (not `stops`, `nextStep`, `uploadPlaces`, `thingsYouDo`, `clipCounts`, URLs) + internal `crId`, `idMatch`, `public` (stripped copy ≤ 16 KB), `publicAt`, `brief` (≤ 20 KB), `briefHash`, `pastedRules`, `rulesVersion`, `readStartedAt`, `logoKey`, `brandKey`, `held` `{at, pending}`, `firstCheckFailedAt`, `nextCheckAt`, `lastListedAt` |
 | Submission | `USER#{userId}` | `CRSUB#{postId}` | `type="crsub"`, `postId`, `clipId`, `campaignId`, `crId`, `url`, `gen` (0), `key` (`postId`, or `{postId}:{gen}` when `gen > 0`), `platform`, `state`, `attempts`, `lastTryAt`, `postedAt`, `deadline` (postedAt + 25 min), `sendBy` (postedAt + 30 min), `submissionId`, `crStatus`, `flagged`, `removed`, `postGone`, `reason`, `views`, `viewsAt`, `earned`, `appealedAt`, `proof` `{text, where, dueAt, notifiedAt, doneAt}`, `sentAt`, `reviewedAt`, `nextCheckAt`, `updatedAt`. Created only by `submit.send`, always first as `state: "sending"` with `attribute_not_exists(pk)`, then updated; `campaignId` never changes (one campaign per post, forever); `crId` and `url` are frozen at that first write |
-| CR money | `USER#{userId}` | `CRMONEY` | `type="crmoney"`, the `CrMoney` numbers, `paidTotalCents`, `paidByCampaign` (map `cmp_…` → cents), `paidMark` `{createdAt, id}` (the newest paid payout counted), `firstReadDone`, `scan` `{status, cursor, at}` (a read to the end still going), `pendingAsOf`, `payoutsSeen` (newest 50 paid payout ids), `celebrations`, `nextCheckAt`, `lastManualAt` |
+| CR money | `USER#{userId}` | `CRMONEY` | `type="crmoney"`, the `CrMoney` numbers, `paidTotalCents`, `paidByCampaign` (map `cmp_…` → cents), `paidMark` `{createdAt, id}` (the newest paid payout counted), `firstReadDone`, `scan` `{status, cursor, at}` (a read to the end still going), `pendingAsOf`, `payoutsSeen` (newest 50 paid payout ids), `celebrations`, `movedAt` (ISO time money last left CR's balance toward Whop; the money answer's `movedAt`), `nextCheckAt`, `lastManualAt` |
 | CR owners | `CROWNERS` | `USER#{userId}` | `type="crowner"`, `since` (the poller's list; written on Connect and on the first campaign add) |
 | Job | `USER#{userId}` | `JOB#{jobId}` | + `campaignId` (public), `campaignNote` (public, agent), `campaign` (internal `JobCampaign`) |
 | Clip | `USER#{userId}` | `CLIP#{clipId}` | + `campaignId` (public, agent) |
@@ -1151,41 +1156,82 @@ Check now (`POST …/campaigns/{id}/read`) runs step 3 for one campaign synchron
 
 ### 38.14 Publishers and Confirm (`platforms/**`, `posts.py`, `routes/clips.py`)
 
-* **Confirm** for a clip whose job has a `campaign` (the same checks run in `_try_again`, so Try again and Post now
-  can't skip them):
-  * `platforms` is required (400 "Pick where it goes, then tap Upload."; the Settings › Where clips go fallback is not
-    used for campaign clips);
-  * `platforms` must be inside the campaign's places by the §38.8 rule, read from the live `CAMPAIGN#.platformsPaid`
-    (the job's `campaign.platformsPaid` only when that item has none), `SETUP#tiktok.gates.posting_audit` and
-    `CRCONN.crLinked`, else 400 "This campaign doesn't pay for X. Turn it off, then tap Upload.";
-  * `CAMPAIGN#` must be `in` or `manual`, not `held`, `paused` or `ended` (409 with the stop's sentence; a missing
-    `CAMPAIGN#` item → 409 "Add the campaign again on the Campaigns page.");
-  * YouTube `options.youtube.privacy` must be public (400 "Campaign clips must be public. Pick Everyone.");
-    `madeForKids: true` is refused (400 "Campaign clips are never made for kids.");
-  * TikTok needs `tiktok.privacy: "PUBLIC_TO_EVERYONE"` (400 "Campaign clips must be public. Pick Everyone.") and
-    `tiktok.brandContent: true` (400 "Turn on Branded content on TikTok for campaign clips.").
-  Each campaign post gets `campaignId` and the internal `postOptions.campaign = {paidPartnership: true, disclosure:
-  rules.disclosure.caption, required: [hashtags, tags, phrase…]}` from the job's rules. A clip without a campaign is
-  unchanged. B reads `CAMPAIGN#`, `CRCONN` and `SETUP#tiktok` with literal keys.
-* **Paid partnership** (`postOptions.campaign.paidPartnership`):
-  * YouTube: `part=snippet,status,paidProductPlacementDetails` with `paidProductPlacementDetails:
-    {hasPaidProductPlacement: true}`; `status.privacyStatus: "public"`; `selfDeclaredMadeForKids: false`. A 400 that
-    names `paidProductPlacementDetails` → the start is sent once more without it (no video is sent before the session
-    exists) and logged `publish.youtube_paid_refused`; the post gets the public `paidLabel: "not_set"` (the post line
-    says so, §38.6).
+* **Which clips.** `routes/clips.campaign_clip` finds a clip's campaign: its job's `campaign` (the rules copied at
+  `POST /v1/jobs`), else, for a clip that outlived its job, the clip's or its posts' `campaignId` with the rules of the
+  `CAMPAIGN#` item. The paid places are the live `CAMPAIGN#.platformsPaid` (the job's `campaign.platformsPaid` only
+  when that item has none). A clip without a campaign is unchanged and never asks the fit (§39.3). The items are read
+  by their literal keys (`CAMPAIGN#{uuid}`, `CRCONN`, the `SETUP#` items through `platform_setup.all_setups`).
+* **Confirm** of a campaign clip in `review`, in this order:
+  * `platforms` is required (400 "Pick where it goes, then tap Upload."; Settings › Where clips go never decides for
+    a campaign clip). Then the normal checks: every chosen place has a connected account (400 "{Platform} is not set
+    up yet. Turn it off, then tap Upload.") and TikTok's choices come with TikTok (400 "Pick who can see it on
+    TikTok.").
+  * The campaign takes clips, else 409 `conflict`: no `CAMPAIGN#` item → "Add the campaign again on the Campaigns
+    page."; `state` `ended` or `paused` → its §38.4 stop sentence; `membership` not `in` or `manual` → that
+    membership's sentence (`unknown`, `not_joined`, `apply_first`, `waiting`, `left`, `not_accepted`; anything else
+    reads as `unknown`, "Connect Content Rewards so I can see if you're in."); `held` set (until the poller clears it,
+    §38.12) → "Content Rewards wants the brand to check your other clips first. I'll tell you when you can post
+    again."
+  * Every chosen place is one of the clip's places (the §38.8 `uploadPlaces` rule), else 400 with the first refusal:
+    not paid → "This campaign doesn't pay for {Platform}. Turn it off, then tap Upload."; not `ready` on Set up
+    posting → "{Platform} is not set up yet. Turn it off, then tap Upload."; TikTok before its `posting_audit` gate is
+    `ok` → "TikTok keeps Clip Factory's posts private until TikTok checks the app, and private posts can't earn. Turn
+    TikTok off, then tap Upload."; `CRCONN.crLinked[place]` is `false` → "Add {Platform} in Content Rewards first.
+    Then tap I added it, or turn {Platform} off and tap Upload."
+  * YouTube: `options.youtube.privacy` other than `public` → 400 "Campaign clips must be public. Pick Everyone.";
+    `madeForKids: true` → 400 "Campaign clips are never made for kids."; the post keeps `privacy: "public"` and
+    `madeForKids: false`.
+  * TikTok: `tiktok.privacyLevel` must be `PUBLIC_TO_EVERYONE` (400 "Campaign clips must be public. Pick Everyone.")
+    and `tiktok.brandContent` `true` (400 "Turn on Branded content on TikTok for campaign clips."). Nothing is picked
+    for him (§17.8).
+  * Last, only while Content Rewards is on, the fit gate (§39.3): 409 with the first `no`, `remake` or `todo` item's
+    words.
+  Each campaign post gets the public `campaignId` and the internal `postOptions.campaign` =
+  `campaign_caption.campaign_options(rules)`: `{paidPartnership: true, disclosure, required}`, where `disclosure` is
+  `rules.disclosure.caption` when it is one of `#Ad`, `#ad`, `#Sponsored`, `#sponsored`, `#PaidPartnership` (else
+  `#Ad`) and `required` is `required_items(rules)`: the required hashtags, then the tags, then the required caption
+  text with placeholders (`[…]`, `{…}`, `<…>`) taken out (a text of only `#`/`@` tokens adds each token), each once,
+  case-insensitive.
+* **Try again and Post now** (`_try_again`: a `failed` clip, or a `posted` or `confirmed` one with `platforms`) run
+  the same 409s, place rule and fit gate on the posts they send (the failed and the waiting ones), with sentences that
+  name the buttons those screens have (no switch, no Upload): "This campaign doesn't pay for {Platform} any more. Tap
+  Try again on another place.", "{Platform} is not set up yet. Set it up in Settings › Posting › Set up posting, then
+  tap Try again.", "TikTok keeps Clip Factory's posts private until TikTok checks the app, and private posts can't
+  earn. Tap Try again on another place." and "Add {Platform} in Content Rewards first, then tap Try again." TikTok's
+  public and Branded content rule runs when new TikTok choices come with it; they replace the TikTok post's
+  `postOptions` but its `campaign` part goes along unchanged. A waiting campaign post is never released by itself when
+  its account comes back (`release.release_waiting`): it waits for Post now (§39.3).
+* **Paid partnership** (`postOptions.campaign.paidPartnership`). A switch the platform refuses is sent once more
+  without it only when the answer is a 400 or 403 whose body names the field (YouTube also: a 400 with reason
+  `unexpectedPart` or `invalidPart`); any other error is the normal error (§17.6). A refused switch leaves
+  `paidLabel: "not_set"` in the post's handle, and `posts.mark_posted` writes it as the post's public `paidLabel`
+  (the post line says so, §38.6); `postOptions.campaign` never leaves the API.
+  * YouTube: the upload URL's `part=snippet,status,paidProductPlacementDetails` with `paidProductPlacementDetails:
+    {hasPaidProductPlacement: true}`; every campaign post is `status.privacyStatus: "public"` and
+    `selfDeclaredMadeForKids: false`, whatever its options say. On a refusal the start is sent once more without the
+    part (no video is sent before the session exists), logged `publish.youtube_paid_refused`; a resumed upload keeps
+    the label.
   * X: `paid_partnership: true` on `POST /2/tweets` (in X's API reference, "Disclose that the tweet is a paid
-    partnership"). A 400 naming it → once more without it, logged, `paidLabel: "not_set"`.
+    partnership"). On a refusal: once more without it (a refused call made no post, so it can't post twice), logged
+    `publish.x_paid_refused`.
   * Instagram and Facebook: Meta's Reels publishing has no paid-partnership field for this kind of app (Meta's
-    branded-content tag needs the brand's own approval), so nothing is sent; the disclosure is the caption's `#Ad`
-    first and "Paid partnership" on the video, which CR's FTC page accepts. The Review row says "Instagram doesn't let
-    apps turn on Paid partnership. #Ad and the words on the video tell viewers."
-  * TikTok: `brand_content_toggle: true` from the owner's own tap (Use my settings or the row), privacy
-    `PUBLIC_TO_EVERYONE`, exactly as §17.8.
-* **Captions** (`platforms/campaign_caption.py`, pure, used by every publisher just before sending):
-  `campaign_caption(platform, text, campaign)` puts the disclosure first (same rule as the agent) and appends any
-  missing required item, inside each platform's limits (Instagram 2,200 characters and 30 hashtags: required ones are
-  never the ones dropped; X 280: free text shortened, never a tag; YouTube description 5,000 bytes). So a caption the
-  owner edited still qualifies.
+    branded-content tag needs the brand's own approval), so nothing extra is sent; the disclosure is the caption's
+    `#Ad` first and "Paid partnership" on the video, which CR's FTC page accepts. The Review row says "Instagram
+    doesn't let apps turn on Paid partnership. #Ad and the words on the video tell viewers."
+  * TikTok: `brand_content_toggle` is the owner's own `brandContent` (Use my settings or the row), privacy
+    `PUBLIC_TO_EVERYONE`, exactly as §17.8 (the publisher still refuses Branded content for anyone but Everyone or
+    Friends).
+* **Captions.** `publishers.caption(job, platform)` runs `campaign_caption(platform, text, postOptions.campaign)` just
+  before sending (and for Instagram's lookup), then each platform's own trim: YouTube's description (angle brackets
+  out, 5,000 bytes), Instagram (`instagram_caption`: 2,200 characters, 30 hashtags), X (links out first, then
+  `x_text`), TikTok and Facebook (2,200 characters). `campaign_caption` (pure, no I/O) puts the disclosure first
+  unless an `#ad`-like tag already starts within the first 30 characters (only the brand's own tag counts when it
+  asked for another, so a typed `#ad` never stands in for `#Sponsored`), appends every required item the caption
+  lacks (`has_item`: a whole `#`/`@` token, case-insensitive, or a phrase with its spaces folded), then fits the
+  limits without ever cutting a required item: Instagram drops other hashtags past 30 first, the last ones first;
+  over the place's length (2,200 characters for Instagram, TikTok and Facebook, X's 280 by X's own count with emoji,
+  CJK and most other scripts counting twice, YouTube's 5,000 bytes) the free text is shortened at a word with "…",
+  never a tag. So a caption the owner edited still qualifies.
 * **Made for kids** is false on every campaign post, whatever any option says.
 * **Delete never takes a campaign post down.** No publisher or adapter has a delete or unpublish call (a test reads
   them); job delete (§34) already keeps posted clips and posts, and also keeps `CRSUB#` items; removing a campaign from
@@ -1253,10 +1299,11 @@ for macOS only (`#[cfg(target_os = "macos")]`); on Windows the bridge exists but
 * `realtime`: the ESM filter's prefixes gain `CAMPAIGN#`, `CRCONN`, `CRSUB#`, `CRMONEY`. `notify`: its filter's `sk`
   prefixes gain the same four (still `eventName: ["MODIFY"]`, one pattern with five prefixes). Both are in-place
   updates of the mappings.
-* `envs/prod`: `variable "content_rewards_enabled"` (bool, **default `false`**), the wiring; no new output. The
-  switch: after builders A–F have all merged, one last one-line PR (owner of the line: builder A) sets the default to
-  `true`. Before it, every new route answers 503 `unavailable` and the clip flow sends nothing, so no campaign clip can
-  go out without B's paid-partnership and caption code and C's logo and on-screen disclosure.
+* `envs/prod`: `variable "content_rewards_enabled"` (bool; shipped **default `false`**, `true` since PR #88), the
+  wiring; no new output. The switch: after builders A–F had all merged, one last one-line PR (#88, owner of the line:
+  builder A) set the default to `true`. Before it, every new route answered 503 `unavailable` and the clip flow sent
+  nothing, so no campaign clip could go out without B's paid-partnership and caption code and C's logo and on-screen
+  disclosure. Setting it back to `false` turns all of that off again.
 * Owner data: no table, index, Cognito pool, bucket or secret is replaced or destroyed; the CR secrets are made at
   runtime and never in Terraform. The plan adds one function, role, policy and log group and changes env vars, IAM
   and two filters in place. The deploy's delete gate still prints "Delete gate: the plan deletes or replaces nothing
@@ -1378,16 +1425,18 @@ approved` on the fake clock. Mock values match the API's sentences.
   membership transitions and cadence (15 min, 6 h, 30 days, `manual` → `in`), `left`, a stuck `sending` with an old
   `lastTryAt`, adoption of a hand-sent post by link, status/views/flags/`removed`/post gone, appeal back to pending,
   money (first read across ticks with "Checking…" and no celebration, the watermark adds only new paid rows, pending to
-  the end, per-submission `earned`, `reversed` ignored, first money only from $0), proof due → one notification,
-  pilot reminders every 3 days at most 5, 25 calls and the time budget, one owner failing; the `contentrewards` stats
-  action; broadcast `CAMPAIGN#`/`CRCONN`/`CRSUB#`/`CRMONEY` → `contentrewards` partial; notify: each §38.11 event once,
-  the minutes left and TTL, the `contentRewards` choice off, dedupe; Ask: `read_setup_guide` with `contentrewards`
-  (present and absent).
+  the end, per-submission `earned`, `reversed` ignored, first money only from $0, `movedAt` null until a move to Whop
+  and then its time, kept until the next one, on the money route and the overview alike), proof due → one
+  notification, pilot reminders every 3 days at most 5, 25 calls and the time budget, one owner failing; the
+  `contentrewards` stats action; broadcast `CAMPAIGN#`/`CRCONN`/`CRSUB#`/`CRMONEY` → `contentrewards` partial; notify:
+  each §38.11 event once, the minutes left and TTL, the `contentRewards` choice off, dedupe; Ask: `read_setup_guide`
+  with `contentrewards` (present and absent).
 * **infra (A)** `terraform test`, mock providers: `cf-prod-campaigns` env and IAM exactly as §38.16 (**no
   `secretsmanager` action**, media only `campaigns/*`), api and stats invoke grants, no new agent grant, the realtime
-  and notify filters' prefixes (notify still `MODIFY` only), `content_rewards_enabled` default `false` →
-  `CONTENT_REWARDS = "off"` everywhere and `true` → `"on"`, no `aws_secretsmanager_secret` for CR, and `envs/prod`
-  wiring; the plan of an existing state replaces nothing (the delete gate test).
+  and notify filters' prefixes (notify still `MODIFY` only), `content_rewards_enabled` `false` →
+  `CONTENT_REWARDS = "off"` everywhere and `true` → `"on"` (modules default `false`; `envs/prod` defaults `true` since
+  PR #88 and still plans with `false`), no `aws_secretsmanager_secret` for CR, and `envs/prod` wiring; the plan of an
+  existing state replaces nothing (the delete gate test).
 * **api posting (B)**: Confirm for campaign clips (every 400/409 of §38.14: no `platforms`, a place off the live
   `CAMPAIGN#` list, TikTok Friends refused, the places rule cases, options forced; the same in `_try_again`; posts carry
   `campaignId` and `postOptions.campaign`); publisher request shapes from fixtures: YouTube `paidProductPlacementDetails`
@@ -1453,3 +1502,28 @@ upload or its processing end (the 25-minute stop leaves 5 minutes); whether YouT
 paid-partnership field for Reels from this app; where brands take proof of views (the brief's words win; CR's
 **Support** chat is the fallback, its attachments not seen); which Settings tab holds "Connect your Whop account" (the
 hint says **Profile**); CR's **Finance** steps and Whop's screens (from Whop's and CR's docs only).
+
+### 38.22 Known limits (by design)
+
+What Clip Factory leaves out for a campaign on purpose. None of them is hidden: each shows as a stop, a check-yourself
+line or a warning where it matters:
+
+* **Its own overlay picture or a sound.** A campaign that wants its own picture on top of the video
+  (`rules.overlayRequired`) or one of its own sounds (`rules.soundRequired` or CR's sound toggle) is refused with a
+  stop: `overlay_needed` "This campaign wants its own picture on top of the video. Clip Factory can't add it yet. Pick
+  another campaign." or `sound_needed` "This campaign needs one of its own sounds. Clip Factory can't add it yet. Pick
+  another campaign." (§38.4; the fit of §39.3 counts both as `no`). The campaign's logo is not this: Clip Factory adds
+  that (§38.13).
+* **A required cover image** (`rules.coverImageRequired`) is not made or checked. It is a check-yourself line: the fit
+  says "I couldn't check: the brand's cover picture." (`brief_only`, `check`), which never blocks Upload.
+* **The rules review** (the agent's `campaign_rules` judgment, §38.13) sees only the campaign's banned content,
+  language and other rules (`REVIEW_RULES`: `bannedContent`, `language`, `otherRules`). The length, the disclosure,
+  the logo, the tags and the places are Clip Factory's own work or its own measured checks, so the review can never
+  drop a clip for them.
+* **When the review gives no answer**, the clip gets a warning, not a stop: its `campaign_rules` row says "Claude
+  couldn't check the campaign's rules. Check it yourself." (not critical, so the clip is kept), the fit makes it a
+  `check`, and Confirm lets it go up.
+* **No brand lookup.** Clip Factory knows a brand only from the campaign itself: its name and picture from CR, the
+  brief, and the channels and videos the brief lists. It never looks the brand up anywhere else, so a video from a
+  channel the brief doesn't name is a check-yourself line ("This video may not be from FaZe's channels. FaZe Clips
+  only pays for those. Look yourself."), never a stop.

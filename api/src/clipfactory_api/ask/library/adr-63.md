@@ -34,7 +34,7 @@
   tap makes one), then makes a one-clip campaign job from the same source and moment (A's campaign checks, rules
   snapshot and logo copy), cut from the original's kept video when it is there; the agent skips finding moments for
   it, and a moment can earn on one campaign only; the copy waits behind `cr_remake_enabled` (default off) until the
-  agent's part has merged. Option (iii): `GET /v1/money/everywhere`, pure on the server, CR's paid payouts kept by day
+  agent's part has merged (done: its switch PR #93 turned it on). Option (iii): `GET /v1/money/everywhere`, pure on the server, CR's paid payouts kept by day
   (`CRMONEY.paidByDay`, filled once for older owners by a day scan that never changes the paid total); the card is the
   first on the Money page with the biggest number, and the MRR cards stay platform-only and say so. The normal way is
   frozen: Home's form at `/` and the Review card of a clip with no campaign keep origin/main's controls and taps (5 to
